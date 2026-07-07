@@ -2,23 +2,24 @@ using Microsoft.AspNetCore.Mvc;
 using otel_api.DTOs;
 using otel_api.Models;
 using otel_api.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace otel_api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] 
     public class ReservationController : ControllerBase
     {
         private readonly ReservationService _service;
-
         public ReservationController(ReservationService service)
         {
             _service = service;
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync());
-
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -26,9 +27,7 @@ namespace otel_api.Controllers
             if (r == null) return NotFound();
             return Ok(r);
         }
-
         [HttpPost]
-        [Consumes("application/json")]
         public async Task<IActionResult> Create([FromBody] ReservationRequest request)
         {
             var reservation = new Reservation
@@ -38,15 +37,13 @@ namespace otel_api.Controllers
                 CheckInDate = request.CheckInDate,
                 CheckOutDate = request.CheckOutDate
             };
-
             var result = await _service.CreateReservation(reservation);
             if (!result.Success) return BadRequest(result.Message);
-            return CreatedAtAction(nameof(GetById), new { id = result.Data?.Id }, result.Data);
+            return CreatedAtAction(nameof(GetById),new {id = result.Data?.Id}, result.Data);
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
-        [Consumes("application/json")]
-        public async Task<IActionResult> Update(int id, [FromBody] ReservationRequest request)
+        public async Task<IActionResult> Update(int id,[FromBody] ReservationRequest request)
         {
             var existing = await _service.GetByIdAsync(id);
             if (existing == null) return NotFound();
@@ -55,17 +52,17 @@ namespace otel_api.Controllers
             existing.RoomId = request.RoomId;
             existing.CheckInDate = request.CheckInDate;
             existing.CheckOutDate = request.CheckOutDate;
-
             var result = await _service.UpdateReservationAsync(existing);
             if (!result.Success) return BadRequest(result.Message);
             return NoContent();
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             await _service.DeleteReservationAsync(id);
             return NoContent();
         }
+
     }
 }

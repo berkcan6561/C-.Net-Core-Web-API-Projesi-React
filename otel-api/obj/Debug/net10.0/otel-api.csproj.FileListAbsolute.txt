@@ -123,3 +123,13 @@ C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\obj\Debug\net10.0\ref\otel-api
 C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Swashbuckle.AspNetCore.Swagger.dll
 C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\obj\Debug\net10.0\otel-api.sourcelink.json
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\BCrypt-Net-Next.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\System.IdentityModel.Tokens.Jwt.dll
