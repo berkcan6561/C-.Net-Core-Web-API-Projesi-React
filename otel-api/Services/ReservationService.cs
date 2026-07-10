@@ -20,6 +20,9 @@ namespace otel_api.Services
 
         public async Task<(bool Success, string Message, Reservation? Data)> CreateReservation(Reservation res)
         {
+            if (res.CheckInDate.Date < DateTime.Now.Date)
+                return (false, "Geçmiş bir tarihe rezervasyon yapılamaz.", null);
+                
             if (res == null)
                 return (false, "Rezervasyon verisi eksik.", null);
 

@@ -61,7 +61,7 @@ if(app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseCors("AllowFrontend");
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -74,7 +74,7 @@ if(!db.Users.Any(u => u.Role == "Admin"))
 {
     db.Users.Add(new User
     {
-        Email = "admin.otel.com",
+        Email = "admin@otel.com",
         PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
         Role = "Admin",
         FirstName = "Admin",

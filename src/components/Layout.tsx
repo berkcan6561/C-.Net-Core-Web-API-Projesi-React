@@ -1,16 +1,25 @@
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
-import { LayoutDashboard, BedDouble, Users, CalendarCheck, Hotel, Sparkles } from 'lucide-react';
-
-const navItems = [
-  { to: '/' as const, label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-  { to: '/rooms' as const, label: 'Odalar', icon: <BedDouble size={20} /> },
-  { to: '/customers' as const, label: 'Müşteriler', icon: <Users size={20} /> },
-  { to: '/reservations' as const, label: 'Rezervasyonlar', icon: <CalendarCheck size={20} /> },
-];
+import { LayoutDashboard, BedDouble, Users, CalendarCheck, Hotel, Sparkles, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export function Layout() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
+  const { user, logout, isAdmin } = useAuth(); // Context'ten rolleri aldık
+
+  // Menü elemanları: Admin her şeyi görür, müşteri bazılarını görmez
+    // Menü elemanları: Admin her şeyi görür, müşteri sadece Dashboard'u görür
+  const navItems = [
+    { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={20} />, show: true },
+    { to: '/rooms', label: 'Odalar', icon: <BedDouble size={20} />, show: isAdmin },
+    { to: '/customers', label: 'Müşteriler', icon: <Users size={20} />, show: isAdmin },
+    { to: '/reservations', label: 'Rezervasyonlar', icon: <CalendarCheck size={20} />, show: isAdmin },
+  ];
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/login'; // Çıkış yapınca login'e at
+  };
 
   return (
     <div className="flex h-screen bg-[#0a0f1c] font-sans text-slate-300 relative overflow-hidden">
@@ -34,7 +43,9 @@ export function Layout() {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-white via-cyan-100 to-cyan-400 bg-clip-text text-transparent tracking-tight">
                 HotelHub
               </h1>
-              <p className="text-[10px] text-cyan-400/80 font-bold tracking-[0.2em] uppercase mt-0.5">Yönetim Paneli</p>
+              <p className="text-[10px] text-cyan-400/80 font-bold tracking-[0.2em] uppercase mt-0.5">
+                {isAdmin ? 'Yönetim Paneli' : 'Müşteri Paneli'}
+              </p>
             </div>
           </div>
         </div>
@@ -42,7 +53,7 @@ export function Layout() {
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-2 mt-4">
           <div className="text-xs font-semibold text-slate-500 tracking-wider mb-4 px-4 uppercase">Menü</div>
-          {navItems.map((item) => {
+          {navItems.filter(item => item.show).map((item) => {
             const isActive = item.to === '/' ? currentPath === '/' : currentPath.startsWith(item.to);
             return (
               <Link
@@ -71,15 +82,24 @@ export function Layout() {
           })}
         </nav>
 
-        {/* User Profile Mock */}
-        <div className="p-4 mb-4 mx-4 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3 hover:bg-white/10 transition-colors cursor-pointer">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg">
-            BA
+        {/* User Profile & Logout */}
+        <div className="p-4 mb-4 mx-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between group hover:bg-white/10 transition-colors">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-10 h-10 rounded-full flex-shrink-0 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg">
+              {user?.fullName?.charAt(0) || 'U'}
+            </div>
+            <div className="overflow-hidden">
+              <h4 className="text-sm font-semibold text-white truncate">{user?.fullName}</h4>
+              <p className="text-xs text-slate-400 truncate">{user?.role}</p>
+            </div>
           </div>
-          <div className="flex-1 overflow-hidden">
-            <h4 className="text-sm font-semibold text-white truncate">Berk C.</h4>
-            <p className="text-xs text-slate-400 truncate">Admin</p>
-          </div>
+          <button 
+            onClick={handleLogout}
+            className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+            title="Çıkış Yap"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </aside>
 

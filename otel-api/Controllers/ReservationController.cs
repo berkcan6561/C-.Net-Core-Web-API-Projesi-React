@@ -56,10 +56,25 @@ namespace otel_api.Controllers
             if (!result.Success) return BadRequest(result.Message);
             return NoContent();
         }
-        [Authorize(Roles = "Admin")]
-        [HttpDelete("{id}")]
+        [HttpGet("my")]
+        public async Task<IActionResult> GetMyReservations()
+        {
+            var customerIdStr = User.FindFirst("CustomerId")?.Value;
+            if (string.IsNullOrEmpty(customerIdStr) || !int.TryParse(customerIdStr, out int customerId))
+                return BadRequest("Müşteri kimliği bulunamadı.");
+
+            var all = await _service.GetAllAsync();
+            var myReservations = all.Where(r => r.CustomerId == customerId).ToList();
+            return Ok(myReservations);
+        }
+
+  [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            var res = await _service.GetByIdAsync(id);
+            if (res == null) return NotFound("Rezervasyon bulunamadı.");
+            if (res.CheckInDate.Date < DateTime.Now.Date)
+                return BadRequest("Geçmiş tarihli veya başlamış rezervasyonlar asla silinemez.");
             await _service.DeleteReservationAsync(id);
             return NoContent();
         }

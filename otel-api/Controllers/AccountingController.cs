@@ -16,7 +16,7 @@ namespace otel_api.Controllers
         {
             _reservationService = reservationService;
         }
-        [HttpGet("revenue")]
+         [HttpGet("revenue")]
         public async Task<IActionResult> GetRevenueStats()
         {
             var reservations = await _reservationService.GetAllAsync();
@@ -26,7 +26,16 @@ namespace otel_api.Controllers
             {
                 TotalRevenue = totalRevenue,
                 CurrentMonthRevenue = currentMonthRevenue,
-                TotalReservationsCount = reservations.Count
+                TotalReservationsCount = reservations.Count,
+                // İŞTE BURASI: Gelirin detaylı listesi (Kim, hangi oda, ne kadar ödedi)
+                Details = reservations.OrderByDescending(r => r.CheckInDate).Select(r => new {
+                    r.Id,
+                    r.RoomId,
+                    r.CustomerId,
+                    r.CheckInDate,
+                    r.CheckOutDate,
+                    r.TotalPrice
+                }).ToList()
             });
         }
     }
