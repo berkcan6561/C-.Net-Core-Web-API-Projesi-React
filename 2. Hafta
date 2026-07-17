@@ -1,0 +1,16 @@
+ 1. Güvenlik ve Kimlik Doğrulama Geliştirmeleri
+E-Posta Doğrulama Sistemi Eklendi: Kullanıcıların kayıt olduktan sonra hesaplarını e-posta üzerinden doğrulamalarını sağlayan altyapı kuruldu (EmailService.cs, VerifyEmail.tsx).
+Otomatik Temizleme (Background Service) Eklendi: Kayıt olan ancak e-posta adresini belirli bir süre içinde doğrulamayan pasif hesapları sistemden otomatik olarak silen arka plan servisi yazıldı (UnverifiedCleanupService.cs).
+Hesap Kilitleme (Account Lockout) Güvenliği Sağlandı: Çok sayıda hatalı giriş denemesi yapıldığında kullanıcı hesabını geçici olarak kilitleyerek "Brute Force" (kaba kuvvet) saldırılarına karşı önlem alındı.
+Şifre Sıfırlama Modülü Eklendi: Kullanıcıların şifrelerini unuttuklarında e-posta aracılığıyla güvenli bir şekilde yeni şifre belirleyebilmeleri için "Şifremi Unuttum" ve "Şifre Sıfırlama" sayfaları ile gerekli backend altyapısı oluşturuldu (ForgotPassword.tsx, ResetPassword.tsx, PasswordRequests.cs).
+ 2. Kullanıcı ve Müşteri Yönetimi
+Kullanıcı Profili Genişletildi: Veritabanındaki kullanıcı tablolarına yeni profil alanları eklendi (AddProfileFields migration).
+Müşteri Kayıt İşlemleri İyileştirildi: Müşteri ekleme işlemi için özel Veri Transfer Nesnesi (DTO) oluşturularak (CustomerCreateDTO.cs) veri bütünlüğü ve doğrulama (validation) işlemleri daha güvenli hale getirildi.
+ 3. Arayüz (UI) ve Kullanıcı Deneyimi (UX) İyileştirmeleri
+Markalaşma: Sisteme yeni bir logo entegre edildi (luna-logo.png).
+Dinamik Modallar (Açılır Pencereler): Arayüzdeki form işlemlerinin ve uyarıların daha modern bir şekilde gösterilmesi için merkezi bir Modal bileşeni güncellendi (Modal.tsx).
+Form Optimizasyonları: Müşteri, Rezervasyon ve Oda formları (CustomerForm.tsx, ReservationForm.tsx, RoomForm.tsx) kullanıcı deneyimini artıracak şekilde yeniden düzenlendi.
+Tasarım ve Düzen: Genel sayfa yapısı (Layout.tsx) ve CSS stilleri (index.css) modernleştirildi, yönlendirme (routing) yapısına yeni güvenlik sayfaları eklendi.
+ 4. Altyapı ve Sistem Ayarları
+E-Posta Altyapısı (SMTP): Backend sistemine, dışarıya e-posta atabilmesi için MailKit ve MimeKit kütüphaneleri entegre edildi ve yapılandırma (appsettings.json) ayarları tanımlandı.
+API İstek Yönetimi: Frontend tarafında API'ye atılan isteklerin (Axios) güvenliğini artırmak ve token yönetimini sağlamak için axiosInstance.ts üzerinde iyileştirmeler yapıldı.
