@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using otel_api.Models;
 using Microsoft.Extensions.Options;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true); 
 
@@ -45,14 +47,37 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
     });
+
+    //Ip tabalı rate limiter
+    builder.Services.AddRateLimiter(Options =>
+    {
+        Options.AddPolicy("IpBaseLoginRegister", context =>
+        {
+            //kullanıcın Ip adresini alıyoruz
+            var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unkown";
+
+            return RateLimitPartition.GetFixedWindowLimiter(ip, _=>
+                new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 3, // 1 dakika içerisinde en fazla 20 istek
+                    Window = TimeSpan.FromMinutes(1), //zaman dilimi: 1 dakika
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0 //direk reddet sıraya alma
+                });
+        });
+        Options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    });
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<CustomerRepository>();
 builder.Services.AddScoped<RoomRepository>();
 builder.Services.AddScoped<ReservationRepository>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddHostedService<UnverifiedCleanupService>();
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<RoomService>();
 builder.Services.AddScoped<ReservationService>();
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 
@@ -62,13 +87,15 @@ if(app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseCors("AllowAll");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.EnsureCreated();
+    // db.Database.EnsureCreated(); yerine Migrate() kullanıyoruz ki Migration'lar düzgün çalışsın.
+    db.Database.Migrate();
 
 if(!db.Users.Any(u => u.Role == "Admin"))
 {
@@ -78,10 +105,22 @@ if(!db.Users.Any(u => u.Role == "Admin"))
         PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
         Role = "Admin",
         FirstName = "Admin",
-        LastName = "User"
+        LastName = "User",
+        IsEmailVerified = true
     });
     db.SaveChanges();
-     }
+}
+
+// Zaten oluşmuş unverified adminleri düzeltelim
+var unverifiedAdmins = db.Users.Where(u => u.Role == "Admin" && !u.IsEmailVerified).ToList();
+if(unverifiedAdmins.Any())
+{
+    foreach(var admin in unverifiedAdmins)
+    {
+        admin.IsEmailVerified = true;
+    }
+    db.SaveChanges();
+}
  }
 app.MapControllers();
 app.Run();

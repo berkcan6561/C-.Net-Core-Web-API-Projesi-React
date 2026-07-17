@@ -1,24 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../api/axiosInstance';
-import { BedDouble, CalendarCheck, DollarSign, Trash2, Calendar, X, Activity } from 'lucide-react';
+import { BedDouble, CalendarCheck, DollarSign, Trash2, Calendar, X, Activity, ArrowRight } from 'lucide-react';
 
 export function Dashboard() {
   const { user, isAdmin } = useAuth();
   
-  // Veriler (State)
   const [rooms, setRooms] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
   const [accounting, setAccounting] = useState<any>(null);
 
-  // Popup (Modal) için State
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [bookingError, setBookingError] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
 
-  // Sayfa açıldığında verileri çek
   useEffect(() => {
     fetchRooms();
     fetchReservations();
@@ -71,11 +69,8 @@ export function Dashboard() {
   };
 
   const handleBookRoom = async () => {
-    if (!checkIn || !checkOut) {
-      setBookingError('Lütfen giriş ve çıkış tarihlerini seçin.');
-      return;
-    }
-    
+    if (!checkIn || !checkOut || isBooking) return;
+    setIsBooking(true);
     try {
       await axiosInstance.post('/Reservation', {
         customerId: user?.customerId,
@@ -86,10 +81,11 @@ export function Dashboard() {
       setSelectedRoom(null);
       setCheckIn(''); setCheckOut(''); setBookingError('');
       fetchReservations();
-      setBookingError('');
       if (isAdmin) fetchAccounting();
     } catch (err: any) {
       setBookingError(err.response?.data || 'Seçilen tarihlerde oda dolu olabilir.');
+    } finally {
+      setIsBooking(false);
       setShowConfirmation(false);
     }
   };
@@ -106,81 +102,97 @@ export function Dashboard() {
     }
   };
 
-  // Zaman kontrolleri için bugünün tarihi (Geçmişe kayıt/iptal engeli)
   const today = new Date().toISOString().split('T')[0];
-  const isFutureDate = (dateStr: string) => {
-    return new Date(dateStr) >= new Date(today);
-  };
+  const isFutureDate = (dateStr: string) => new Date(dateStr) >= new Date(today);
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    // Ana konteynere sayfa yüklendiğinde hafifçe belirmesi için fade-in animasyonu ekledik
+    <div className="space-y-10 animate-fade-in">
       
+      {/* BAŞLIK (Premium Gradient Efektli) */}
+      <div className="animate-slide-in" style={{ animationDelay: '0.1s' }}>
+        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 bg-clip-text text-transparent">
+          {isAdmin ? 'Yönetim Paneli Özeti' : 'Hoş Geldiniz, ' + (user?.fullName || '')}
+        </h1>
+        <p className="text-slate-500 text-sm mt-2 font-medium">
+          {isAdmin ? 'Otelin genel durumunu ve finansal verileri buradan takip edebilirsiniz.' : 'Aşağıdan odalarımızı inceleyebilir ve rezervasyon yapabilirsiniz.'}
+        </p>
+      </div>
+
       {/* 1. ADMIN'E ÖZEL MUHASEBE MODÜLÜ */}
       {isAdmin && accounting && (
         <div className="space-y-8">
+          {/* İstatistik Kartları - Hover ile havaya kalkma efektli */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-emerald-500/10 to-teal-600/10 border border-emerald-500/20 p-6 rounded-3xl flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <DollarSign size={24} />
+            
+            {/* Kart 1 */}
+            <div className="group bg-white border border-slate-200 p-6 rounded-2xl flex items-center gap-5 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 animate-slide-in" style={{ animationDelay: '0.2s' }}>
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-300 shadow-inner">
+                <DollarSign size={28} className="group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div>
-                <p className="text-slate-400 text-sm font-semibold">Toplam Gelir</p>
-                <h3 className="text-2xl font-bold text-white">{accounting.totalRevenue} ₺</h3>
+                <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">Toplam Gelir</p>
+                <h3 className="text-2xl font-bold text-slate-900 mt-1">{accounting.totalRevenue.toLocaleString('tr-TR')} ₺</h3>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 p-6 rounded-3xl flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 flex items-center justify-center text-cyan-400">
-                <Activity size={24} />
+
+            {/* Kart 2 */}
+            <div className="group bg-white border border-slate-200 p-6 rounded-2xl flex items-center gap-5 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 animate-slide-in" style={{ animationDelay: '0.3s' }}>
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 shadow-inner">
+                <Activity size={28} className="group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div>
-                <p className="text-slate-400 text-sm font-semibold">Bu Ayki Gelir</p>
-                <h3 className="text-2xl font-bold text-white">{accounting.currentMonthRevenue} ₺</h3>
+                <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">Bu Ayki Gelir</p>
+                <h3 className="text-2xl font-bold text-slate-900 mt-1">{accounting.currentMonthRevenue.toLocaleString('tr-TR')} ₺</h3>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-violet-500/10 to-fuchsia-600/10 border border-violet-500/20 p-6 rounded-3xl flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-violet-500/20 flex items-center justify-center text-violet-400">
-                <CalendarCheck size={24} />
+
+            {/* Kart 3 */}
+            <div className="group bg-white border border-slate-200 p-6 rounded-2xl flex items-center gap-5 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 animate-slide-in" style={{ animationDelay: '0.4s' }}>
+              <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-300 shadow-inner">
+                <CalendarCheck size={28} className="group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div>
-                <p className="text-slate-400 text-sm font-semibold">Toplam Rezervasyon</p>
-                <h3 className="text-2xl font-bold text-white">{accounting.totalReservationsCount} Adet</h3>
+                <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">Rezervasyon</p>
+                <h3 className="text-2xl font-bold text-slate-900 mt-1">{accounting.totalReservationsCount} Adet</h3>
               </div>
             </div>
+
           </div>
 
-          <div>
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <Activity className="text-emerald-400" />  Gelir Geçmişi
+          {/* Gelir Geçmişi Tablosu */}
+          <div className="animate-slide-in" style={{ animationDelay: '0.5s' }}>
+            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Activity className="text-blue-500 w-5 h-5" /> Son İşlemler
             </h2>
-            <div className="bg-[#131b2f] border border-white/5 rounded-2xl overflow-hidden">
-              <table className="w-full text-left text-sm text-slate-300">
-                <thead className="bg-white/5 text-slate-400 text-xs uppercase font-semibold">
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <table className="w-full text-left text-sm text-slate-600">
+                <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
                   <tr>
                     <th className="px-6 py-4">İşlem ID</th>
                     <th className="px-6 py-4">Oda No</th>
-                    <th className="px-6 py-4">Müşteri Adı Soyadı</th>
+                    <th className="px-6 py-4">Müşteri</th>
                     <th className="px-6 py-4">Tarih Aralığı</th>
-                    <th className="px-6 py-4 text-emerald-400">Kazanılan Tutar</th>
+                    <th className="px-6 py-4 text-emerald-600">Tutar</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-slate-100">
                   {accounting.details?.map((res: any) => (
-                    <tr key={res.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4">#{res.id}</td>
+                    // Satır Hover Efekti
+                    <tr key={res.id} className="hover:bg-blue-50/50 transition-colors group cursor-default">
+                      <td className="px-6 py-4 font-medium text-slate-500">#{res.id}</td>
                       <td className="px-6 py-4">Oda {res.room?.roomNumber || res.roomId}</td>
-                      <td className="px-6 py-4 font-bold text-cyan-300">
+                      <td className="px-6 py-4 font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
                         {res.customer ? `${res.customer.firstName} ${res.customer.lastName}` : `Müşteri ${res.customerId}`}
                       </td>
                       <td className="px-6 py-4">
                         {new Date(res.checkInDate).toLocaleDateString('tr-TR')} - {new Date(res.checkOutDate).toLocaleDateString('tr-TR')}
                       </td>
-                      <td className="px-6 py-4 font-bold text-emerald-400">+{res.totalPrice} ₺</td>
+                      <td className="px-6 py-4 font-bold text-emerald-600">+{res.totalPrice.toLocaleString('tr-TR')} ₺</td>
                     </tr>
                   ))}
                   {(!accounting.details || accounting.details.length === 0) && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-4 text-center text-slate-500">Henüz gelir kaydı yok.</td>
-                    </tr>
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">Kayıt yok.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -189,28 +201,34 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* 2. ODALAR LİSTESİ */}
+      {/* 2. MÜŞTERİLER İÇİN ODA LİSTESİ */}
       {!isAdmin && (
-        <div>
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <BedDouble className="text-cyan-400" /> Kiralayabileceğiniz Odalar
+        <div className="mt-8 animate-slide-in" style={{ animationDelay: '0.2s' }}>
+          <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <BedDouble className="text-blue-500 w-5 h-5" /> Kiralayabileceğiniz Odalar
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {rooms.map((room) => (
-              <div key={room.id} className="bg-[#131b2f] border border-white/5 rounded-2xl p-5 hover:border-cyan-500/30 transition-colors group">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {rooms.map((room, idx) => (
+              // Oda Kartı Hover Animasyonu
+              <div 
+                key={room.id} 
+                className="group bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-200 transition-all duration-300 animate-slide-in"
+                style={{ animationDelay: `${0.1 * idx}s` }}
+              >
                 <div className="flex justify-between items-start mb-4">
-                  <span className="bg-white/5 text-slate-300 text-xs px-3 py-1 rounded-full border border-white/10">
+                  <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-700 transition-colors">
                     Oda {room.roomNumber}
                   </span>
-                  <span className="text-cyan-400 font-bold">{room.pricePerNight} ₺ <span className="text-[10px] text-slate-500 font-normal">/gece</span></span>
+                  <span className="text-blue-600 font-bold text-xl">{room.pricePerNight} ₺ <span className="text-xs text-slate-400 font-normal">/gece</span></span>
                 </div>
-                <h3 className="text-white font-medium mb-1">Kapasite: {room.capacity} Kişi</h3>
+                <h3 className="text-slate-700 font-medium mb-1">Kapasite: {room.capacity} Kişi</h3>
                 
                 <button 
                   onClick={() => setSelectedRoom(room)}
-                  className="w-full mt-4 bg-cyan-500/10 text-cyan-400 font-medium py-2 rounded-xl border border-cyan-500/20 hover:bg-cyan-500 hover:text-white transition-all text-sm"
+                  className="w-full mt-6 flex items-center justify-center gap-2 bg-slate-50 text-slate-700 font-bold py-3 rounded-xl border border-slate-200 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300 text-sm"
                 >
-                  Hemen Seç
+                  Rezervasyon Yap
+                  <ArrowRight size={16} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
                 </button>
               </div>
             ))}
@@ -218,52 +236,53 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* 3. REZERVASYONLAR (Müşteri için kendi, Admin için tümü) */}
-      <div>
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2 mt-10">
-          <Calendar className="text-violet-400" /> {isAdmin ? 'Tüm Rezervasyon Yönetimi' : 'Geçmiş ve Aktif Rezervasyonlarım'}
+      {/* 3. REZERVASYON TABLOSU */}
+      <div className="pt-6 animate-slide-in" style={{ animationDelay: isAdmin ? '0.6s' : '0.4s' }}>
+        <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <Calendar className="text-purple-500 w-5 h-5" /> {isAdmin ? 'Tüm Rezervasyonlar' : 'Rezervasyonlarım'}
         </h2>
         
         {reservations.length === 0 ? (
-          <div className="text-slate-500 text-sm p-6 bg-white/5 rounded-2xl border border-white/5 text-center">
+          <div className="text-slate-500 text-sm p-8 bg-white rounded-2xl border border-slate-200 text-center shadow-sm">
             Henüz hiç rezervasyon bulunmuyor.
           </div>
         ) : (
-          <div className="bg-[#131b2f] border border-white/5 rounded-2xl overflow-hidden">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-white/5 text-slate-400 text-xs uppercase font-semibold">
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <table className="w-full text-left text-sm text-slate-600">
+              <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
                 <tr>
                   <th className="px-6 py-4">Oda No</th>
-                  {isAdmin && <th className="px-6 py-4">Müşteri Adı Soyadı</th>}
+                  {isAdmin && <th className="px-6 py-4">Müşteri</th>}
                   <th className="px-6 py-4">Giriş Tarihi</th>
                   <th className="px-6 py-4">Çıkış Tarihi</th>
-                  <th className="px-6 py-4 text-emerald-400">Ödenen Tutar</th>
-                  <th className="px-6 py-4 text-right">Durum / İşlem</th>
+                  <th className="px-6 py-4 text-slate-900">Tutar</th>
+                  <th className="px-6 py-4 text-right">İşlem</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-slate-100">
                 {reservations.map((res) => {
                   const canCancel = isFutureDate(res.checkInDate) || isAdmin; 
                   return (
-                    <tr key={res.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4">Oda {res.room?.roomNumber || res.roomId}</td>
-                      {isAdmin && <td className="px-6 py-4 font-semibold text-cyan-300">
+                    // Tablo Satırı Hover
+                    <tr key={res.id} className="hover:bg-slate-50 transition-colors group">
+                      <td className="px-6 py-4 font-medium">Oda {res.room?.roomNumber || res.roomId}</td>
+                      {isAdmin && <td className="px-6 py-4 font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
                         {res.customer ? `${res.customer.firstName} ${res.customer.lastName}` : `Müşteri ${res.customerId}`}
                       </td>}
                       <td className="px-6 py-4">{new Date(res.checkInDate).toLocaleDateString('tr-TR')}</td>
                       <td className="px-6 py-4">{new Date(res.checkOutDate).toLocaleDateString('tr-TR')}</td>
-                      <td className="px-6 py-4 font-bold text-white">{res.totalPrice} ₺</td>
+                      <td className="px-6 py-4 font-bold text-slate-900">{res.totalPrice.toLocaleString('tr-TR')} ₺</td>
                       <td className="px-6 py-4 text-right">
                         {canCancel ? (
                           <button 
                             onClick={() => handleDeleteReservation(res.id)}
-                            className="text-rose-400 hover:text-rose-300 hover:bg-rose-400/10 p-2 rounded-lg transition-colors ml-auto"
-                            title="İptal Et / Sil"
+                            className="text-red-400 hover:text-white hover:bg-red-500 p-2 rounded-lg transition-all inline-flex items-center shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                            title="İptal Et"
                           >
                             <Trash2 size={18} />
                           </button>
                         ) : (
-                          <span className="text-slate-500 text-xs bg-slate-800 px-3 py-1 rounded-lg">Geçmiş/Tamamlandı</span>
+                          <span className="text-slate-500 text-xs font-bold bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">TAMAMLANDI</span>
                         )}
                       </td>
                     </tr>
@@ -275,85 +294,70 @@ export function Dashboard() {
         )}
       </div>
 
+      {/* REZERVASYON MODALI */}
       {selectedRoom && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#131b2f] border border-white/10 rounded-3xl p-8 w-full max-w-md relative shadow-2xl animate-slide-in">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 w-full max-w-md relative shadow-2xl animate-slide-in">
             <button 
               onClick={() => { setSelectedRoom(null); setBookingError(''); setShowConfirmation(false); }}
-              className="absolute top-6 right-6 text-slate-400 hover:text-white"
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-all hover:rotate-90"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
             
-            <h2 className="text-2xl font-bold text-white mb-2">Rezervasyon Yap</h2>
-            <p className="text-slate-400 text-sm mb-6">Oda {selectedRoom.roomNumber} ({selectedRoom.pricePerNight} ₺ / gece)</p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-1">Rezervasyon Yap</h2>
+            <p className="text-slate-500 text-sm mb-6">Oda {selectedRoom.roomNumber} &bull; <span className="font-semibold text-blue-600">{selectedRoom.pricePerNight} ₺ / gece</span></p>
 
             {bookingError && (
-              <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl text-sm mb-4">
+              <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-sm mb-5 font-medium animate-slide-in">
                 {bookingError}
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Giriş Tarihi</label>
-                <input 
-                  type="date" 
-                  min={today}
-                  value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full bg-slate-900/50 border border-slate-600 text-white rounded-xl px-4 py-3 outline-none focus:border-cyan-500" 
-                />
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Giriş Tarihi</label>
+                <input type="date" min={today} value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all hover:border-slate-300" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Çıkış Tarihi</label>
-                <input 
-                  type="date" 
-                  min={checkIn || today}
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full bg-slate-900/50 border border-slate-600 text-white rounded-xl px-4 py-3 outline-none focus:border-cyan-500" 
-                />
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Çıkış Tarihi</label>
+                <input type="date" min={checkIn || today} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all hover:border-slate-300" />
               </div>
-              <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl mt-4">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm text-cyan-100">Kalış Süresi:</span>
-                  <span className="text-sm font-bold text-cyan-400">{totalDays} Gece</span>
+              
+              <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl mt-4 transition-all">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-blue-800 font-medium">Kalış Süresi:</span>
+                  <span className="text-sm font-bold text-blue-700">{totalDays} Gece</span>
                 </div>
-                <div className="flex justify-between items-center border-t border-cyan-500/20 pt-2 mt-2">
-                  <span className="text-sm text-cyan-100">Toplam Fiyat:</span>
-                  <span className="text-lg font-bold text-white">{totalPrice} ₺</span>
+                <div className="flex justify-between items-center border-t border-blue-200/60 pt-3">
+                  <span className="text-sm text-blue-800 font-medium">Toplam Fiyat:</span>
+                  <span className="text-xl font-bold text-blue-700 transition-all">{totalPrice} ₺</span>
                 </div>
               </div>
 
               <button 
                 onClick={handleInitialSubmit} 
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold py-3 rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/20 mt-2"
+                className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all mt-2"
               >
-                Onayla ve Kirala
+                Devam Et
               </button>
             </div>
           </div>
         </div>
       )}
-              {/* 5. ONAY POPUP (Emin misiniz ekranı) */}
+
+      {/* ONAY MODALI */}
       {showConfirmation && selectedRoom && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-          <div className="bg-[#131b2f] border border-cyan-500/30 rounded-3xl p-8 w-full max-w-sm text-center shadow-[0_0_40px_rgba(6,182,212,0.15)] animate-fade-in">
-            <h2 className="text-xl font-bold text-white mb-4">Rezervasyonu Onaylıyor musunuz?</h2>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl animate-slide-in">
+            <h2 className="text-xl font-extrabold text-slate-900 mb-4">Onaylıyor musunuz?</h2>
             
-            <div className="bg-white/5 rounded-2xl p-4 mb-6 text-left space-y-2">
-              <p className="text-sm text-slate-300">
-                <span className="text-slate-500">Oda:</span> Oda {selectedRoom.roomNumber}
-              </p>
-              <p className="text-sm text-slate-300">
-                <span className="text-slate-500">Tarih:</span> {new Date(checkIn).toLocaleDateString('tr-TR')} - {new Date(checkOut).toLocaleDateString('tr-TR')}
-              </p>
-              <p className="text-sm text-slate-300">
-                <span className="text-slate-500">Süre:</span> {totalDays} Gece
-              </p>
-              <div className="border-t border-white/10 pt-2 mt-2">
-                <p className="text-lg font-bold text-emerald-400 text-center">
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-6 text-left space-y-3">
+              <p className="text-sm text-slate-700"><span className="text-slate-500 w-16 inline-block">Oda:</span> <span className="font-semibold text-slate-900">Oda {selectedRoom.roomNumber}</span></p>
+              <p className="text-sm text-slate-700"><span className="text-slate-500 w-16 inline-block">Tarih:</span> <span className="font-semibold text-slate-900">{new Date(checkIn).toLocaleDateString('tr-TR')} - {new Date(checkOut).toLocaleDateString('tr-TR')}</span></p>
+              <p className="text-sm text-slate-700"><span className="text-slate-500 w-16 inline-block">Süre:</span> <span className="font-semibold text-slate-900">{totalDays} Gece</span></p>
+              <div className="border-t border-slate-200 pt-3 mt-1">
+                <p className="text-xl font-black text-emerald-600 text-center">
                   Toplam: {totalPrice} ₺
                 </p>
               </div>
@@ -361,16 +365,18 @@ export function Dashboard() {
 
             <div className="flex gap-3">
               <button 
-                onClick={() => setShowConfirmation(false)}
-                className="flex-1 bg-slate-800 text-slate-300 font-medium py-3 rounded-xl hover:bg-slate-700 transition-all text-sm"
+                onClick={() => setShowConfirmation(false)} 
+                disabled={isBooking}
+                className="flex-1 bg-white border border-slate-300 text-slate-700 font-bold py-3 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm disabled:opacity-50"
               >
                 Vazgeç
               </button>
               <button 
-                onClick={handleBookRoom}
-                className="flex-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold py-3 rounded-xl hover:bg-emerald-500 hover:text-white transition-all text-sm shadow-lg shadow-emerald-500/20"
+                onClick={handleBookRoom} 
+                disabled={isBooking}
+                className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm disabled:opacity-50 flex items-center justify-center"
               >
-                Evet, Onaylıyorum
+                {isBooking ? 'Onaylanıyor...' : 'Onaylıyorum'}
               </button>
             </div>
           </div>

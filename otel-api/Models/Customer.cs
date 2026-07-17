@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace otel_api.Models
 {
     public class Customer
@@ -7,5 +9,8 @@ namespace otel_api.Models
         public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
+
+        [NotMapped]
+        public DateTime? LockoutEnd { get; set; }
     }
 }

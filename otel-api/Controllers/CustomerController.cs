@@ -33,9 +33,9 @@ namespace otel_api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Customer customer)
+        public async Task<IActionResult> Create([FromBody] otel_api.DTOs.CustomerCreateDTO dto)
         {
-            var result = await _customerService.CreateCustomer(customer);
+            var result = await _customerService.CreateCustomer(dto);
             if (!result.Success) return BadRequest(result.Message);
             return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
         }

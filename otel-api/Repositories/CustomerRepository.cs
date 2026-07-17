@@ -9,7 +9,21 @@ namespace otel_api.Repositories
         private readonly ApplicationDbContext _db;
         public CustomerRepository(ApplicationDbContext db) => _db = db;
 
-        public async Task<List<Customer>> GetAllAsync() => await _db.Customers.ToListAsync();
+        public async Task<List<Customer>> GetAllAsync() 
+        {
+            var customers = await _db.Customers.ToListAsync();
+            var users = await _db.Users.Where(u => u.CustomerId != null).ToListAsync();
+            
+            foreach(var c in customers)
+            {
+                var user = users.FirstOrDefault(u => u.CustomerId == c.Id);
+                if (user != null)
+                {
+                    c.LockoutEnd = user.LockoutEnd;
+                }
+            }
+            return customers;
+        }
 
         public async Task AddAsync(Customer customer)
         {

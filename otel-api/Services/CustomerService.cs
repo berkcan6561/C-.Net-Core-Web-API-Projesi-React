@@ -1,3 +1,5 @@
+using otel_api.Data;
+using otel_api.DTOs;
 using otel_api.Models;
 using otel_api.Repositories;
 
@@ -6,15 +8,46 @@ namespace otel_api.Services
     public class CustomerService
     {
         private readonly CustomerRepository _repo;
-        public CustomerService(CustomerRepository repo) => _repo = repo;
+        private readonly ApplicationDbContext _db;
+        
+        public CustomerService(CustomerRepository repo, ApplicationDbContext db)
+        {
+            _repo = repo;
+            _db = db;
+        }
 
         public async Task<List<Customer>> GetAllAsync() => await _repo.GetAllAsync();
 
         public async Task<Customer?> GetByIdAsync(int id) => await _repo.GetByIdAsync(id);
 
-        public async Task<(bool Success, string Message, Customer? Data)> CreateCustomer(Customer customer)
+        public async Task<(bool Success, string Message, Customer? Data)> CreateCustomer(CustomerCreateDTO dto)
         {
+            var customer = new Customer
+            {
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                Email = dto.Email,
+                PhoneNumber = dto.PhoneNumber
+            };
+
             await _repo.AddAsync(customer);
+
+            if (!string.IsNullOrEmpty(dto.Password))
+            {
+                var user = new User
+                {
+                    Email = dto.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                    Role = "Customer",
+                    FirstName = dto.FirstName,
+                    LastName = dto.LastName,
+                    CustomerId = customer.Id,
+                    IsEmailVerified = true
+                };
+                await _db.Users.AddAsync(user);
+                await _db.SaveChangesAsync();
+            }
+
             return (true, "Müşteri başarıyla eklendi.", customer);
         }
 

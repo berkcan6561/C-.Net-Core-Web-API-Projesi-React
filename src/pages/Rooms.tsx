@@ -63,15 +63,15 @@ export function Rooms() {
     }
   };
 
-  if (isLoading) return (
+   if (isLoading) return (
     <div className="flex flex-col items-center justify-center h-64 gap-4">
-      <div className="w-10 h-10 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-      <p className="text-cyan-500 font-medium animate-pulse">Odalar Yükleniyor...</p>
+      <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+      <p className="text-slate-600 font-semibold animate-pulse">Odalar Yükleniyor...</p>
     </div>
   );
   
   if (isError) return (
-    <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-center font-medium">
+    <div className="p-6 bg-red-50 border border-red-100 rounded-2xl text-red-500 text-center font-medium shadow-sm">
       Sunucuya bağlanılamadı. Backend çalışıyor mu?
     </div>
   );
@@ -80,26 +80,26 @@ export function Rooms() {
     <div className="animate-fade-in space-y-8 relative">
       <div className="flex justify-between items-end">
         <div>
-          <div className="flex items-center gap-2 mb-2 text-cyan-400 text-sm font-semibold tracking-wider uppercase">
-            <BedDouble size={16} /> Oda Yönetimi
+          <div className="flex items-center gap-2 mb-2 text-slate-500 text-sm font-bold tracking-wider uppercase">
+            <BedDouble size={16} className="text-blue-600" /> Oda Yönetimi
           </div>
-          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-100 to-cyan-400 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
             Odalar
           </h1>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-2xl hover:from-cyan-400 hover:to-blue-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] hover:-translate-y-0.5 flex items-center gap-2"
+          className="px-6 py-3 bg-slate-900 text-amber-500 font-bold rounded-xl hover:bg-slate-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center gap-2"
         >
           <Plus size={20} strokeWidth={2.5} />
           Yeni Oda
         </button>
       </div>
 
-      <div className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-sm">
-        <div className="overflow-x-auto p-4">
-          <table className="w-full text-left text-sm text-slate-300 border-separate border-spacing-y-2">
-            <thead className="text-slate-400 text-xs uppercase tracking-wider font-semibold">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-slate-600">
+            <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
               <tr>
                 <th className="px-6 py-4">Oda No</th>
                 <th className="px-6 py-4">Kapasite</th>
@@ -107,36 +107,34 @@ export function Rooms() {
                 <th className="px-6 py-4 text-right">İşlemler</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {rooms?.map((room) => (
-                <tr key={room.id} className="bg-white/[0.03] hover:bg-white/[0.06] transition-colors rounded-2xl group">
-                  <td className="px-6 py-4 rounded-l-2xl border border-transparent group-hover:border-white/5 border-r-0">
-                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 text-white font-bold border border-slate-700 shadow-inner mr-3">
+                <tr key={room.id} className="hover:bg-slate-50 transition-colors group cursor-default">
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 text-slate-700 font-bold border border-slate-200 shadow-sm mr-3 group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-200 transition-colors">
                       {room.roomNumber}
                     </span>
                   </td>
-                  <td className="px-6 py-4 border border-transparent group-hover:border-white/5 border-x-0">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 text-xs font-semibold border border-indigo-500/20">
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs font-bold border border-slate-200 group-hover:border-blue-200 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                       <Users size={14} /> {room.capacity} Kişi
                     </span>
                   </td>
-                  <td className="px-6 py-4 border border-transparent group-hover:border-white/5 border-x-0">
-                    <span className="text-cyan-400 font-bold text-base tracking-wide">
-                      {room.pricePerNight.toLocaleString('tr-TR')} ₺
-                    </span>
+                  <td className="px-6 py-4 font-bold text-slate-900">
+                    {room.pricePerNight.toLocaleString('tr-TR')} ₺
                   </td>
-                  <td className="px-6 py-4 rounded-r-2xl border border-transparent group-hover:border-white/5 border-l-0 text-right">
+                  <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleOpenModal(room)}
-                        className="p-2 text-cyan-400 hover:text-white hover:bg-cyan-500/20 rounded-xl transition-all"
+                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-900 rounded-lg transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                         title="Düzenle"
                       >
                         <Pencil size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(room.id)}
-                        className="p-2 text-rose-400 hover:text-white hover:bg-rose-500/20 rounded-xl transition-all"
+                        className="p-2 text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                         title="Sil"
                       >
                         <Trash2 size={18} />
@@ -147,9 +145,9 @@ export function Rooms() {
               ))}
               {rooms?.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-16 text-center text-slate-500 bg-white/[0.01] rounded-2xl">
+                  <td colSpan={4} className="px-6 py-16 text-center text-slate-500 bg-white">
                     <div className="flex flex-col items-center justify-center gap-3">
-                      <BedDouble size={48} className="opacity-20" />
+                      <BedDouble size={48} className="opacity-20 text-slate-400" />
                       <p>Henüz hiç oda eklenmemiş.</p>
                     </div>
                   </td>

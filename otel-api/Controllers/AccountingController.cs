@@ -31,7 +31,9 @@ namespace otel_api.Controllers
                 Details = reservations.OrderByDescending(r => r.CheckInDate).Select(r => new {
                     r.Id,
                     r.RoomId,
+                    Room = r.Room != null ? new { r.Room.RoomNumber } : null,
                     r.CustomerId,
+                    Customer = r.Customer != null ? new { r.Customer.FirstName, r.Customer.LastName } : null,
                     r.CheckInDate,
                     r.CheckOutDate,
                     r.TotalPrice

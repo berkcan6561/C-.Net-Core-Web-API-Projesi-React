@@ -133,3 +133,6 @@ C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Microsoft.Id
 C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\Microsoft.IdentityModel.Tokens.dll
 C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\System.IdentityModel.Tokens.Jwt.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\BouncyCastle.Cryptography.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\MailKit.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\MimeKit.dll

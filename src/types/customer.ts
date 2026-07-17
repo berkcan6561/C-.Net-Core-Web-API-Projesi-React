@@ -4,4 +4,6 @@ export interface Customer {
   lastName: string;
   email: string;
   phoneNumber: string;
+  password?: string;
+  lockoutEnd?: string | null;
 }

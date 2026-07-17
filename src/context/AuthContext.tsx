@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 
 interface User{
     userId: number;
@@ -20,10 +20,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); //zamanlayıcı
+    const IDLE_TIMEOUT = 15* 60 * 1000; //boşta kalma süresi 15 dk
 
     useEffect(() => {
-        const savedToken = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
+        const savedToken = sessionStorage.getItem('token');
+        const savedUser = sessionStorage.getItem('user');
         
         if(savedToken && savedUser){
             setToken(savedToken);
@@ -31,17 +33,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    useEffect(() => {
+        if(!token) return;
+        // eğer giriş yapılmamışsa sayaç çalıştırma
+        const resetTimeout = () => {
+            if (timeoutRef.current){
+                clearTimeout(timeoutRef.current);
+            }
+            //süre dolduğunda çıkış yap
+            timeoutRef.current = setTimeout(() =>{
+                console.log("Uzun süre işlem yapılmadığı için otomatik çıkış yapıldı.");
+                logout();
+                
+            },IDLE_TIMEOUT);
+        };
+        const events = ['mousemove', 'keydown','click','scroll'];
+        events.forEach(event => {
+            window.addEventListener(event, resetTimeout);
+        });
+        resetTimeout(); // sayfaya girer girmez sayaç başlıyor
+
+        //temizlik: compenent unmount olduğunda eventleri kaldır
+        return () =>{
+            if ( timeoutRef.current){
+                clearTimeout(timeoutRef.current);
+            }
+            events.forEach(event => {
+                window.removeEventListener(event, resetTimeout);
+            });
+        };
+    },[token]);
+
     const login = (newToken: string, newUser: User) => {
         setToken(newToken);
         setUser(newUser);
-        localStorage.setItem('token', newToken);
-        localStorage.setItem('user', JSON.stringify(newUser));
+        sessionStorage.setItem('token', newToken);
+        sessionStorage.setItem('user', JSON.stringify(newUser));
     };
     const logout = () => {
         setToken(null);
         setUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        // çıkış yapıldıktan sonra giriş sayfasına yönlendirme
+        window.location.href = '/login'
     };
     return(
         <AuthContext.Provider value={{

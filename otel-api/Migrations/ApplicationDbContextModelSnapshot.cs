@@ -60,10 +60,10 @@ namespace otel_api.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CheckInDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("CheckOutDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("CustomerId")
                         .HasColumnType("integer");
@@ -75,6 +75,10 @@ namespace otel_api.Migrations
                         .HasColumnType("numeric");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("RoomId");
 
                     b.ToTable("Reservations");
                 });
@@ -100,6 +104,93 @@ namespace otel_api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Rooms");
+                });
+
+            modelBuilder.Entity("otel_api.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("FailedLoginAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LockoutEnd")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResetPasswordToken")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ResetPasswordTokenExpiry")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("VerificationToken")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("VerificationTokenExpiry")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("otel_api.Models.Reservation", b =>
+                {
+                    b.HasOne("otel_api.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("otel_api.Models.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("otel_api.Models.User", b =>
+                {
+                    b.HasOne("otel_api.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId");
+
+                    b.Navigation("Customer");
                 });
 #pragma warning restore 612, 618
         }
