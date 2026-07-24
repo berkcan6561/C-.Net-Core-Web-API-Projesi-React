@@ -5,6 +5,7 @@ interface User{
     customerId?: number;
     fullName: string;
     role: string;
+    avatarUrl?: string;
 }
 
 interface AuthContextType {

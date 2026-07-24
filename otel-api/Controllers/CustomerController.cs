@@ -3,11 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using otel_api.Models;
 using otel_api.Services;
 
+using Microsoft.AspNetCore.RateLimiting;
+
 namespace otel_api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Roles = "Admin")] // DİKKAT: Müşteri verilerini sadece Admin görebilir ve yönetebilir!
+    [EnableRateLimiting("TokenBucketNavigation")]
     public class CustomerController : ControllerBase
     {
         private readonly CustomerService _customerService;

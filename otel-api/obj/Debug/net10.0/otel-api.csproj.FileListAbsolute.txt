@@ -136,3 +136,5 @@ C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\System.Ident
 C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\BouncyCastle.Cryptography.dll
 C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\MailKit.dll
 C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\MimeKit.dll
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\bin\Debug\net10.0\otel-api.staticwebassets.runtime.json
+C:\Users\berkc\Desktop\otel rezervasyonu\otel-api\obj\Debug\net10.0\compressed\n9b5uptqyb-{0}-t3t5ea61x4-t3t5ea61x4.gz

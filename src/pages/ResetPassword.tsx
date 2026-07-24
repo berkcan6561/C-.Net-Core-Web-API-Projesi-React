@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { Lock, Loader2, CheckCircle2 } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
@@ -11,15 +11,8 @@ export function ResetPassword() {
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    if (!token) {
-      setStatus('error');
-      setMessage('Geçersiz şifre sıfırlama bağlantısı.');
-    }
-  }, [token]);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(!token ? 'error' : 'idle');
+  const [message, setMessage] = useState(!token ? 'Geçersiz şifre sıfırlama bağlantısı.' : '');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

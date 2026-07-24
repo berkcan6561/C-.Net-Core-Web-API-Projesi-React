@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("otel_api.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d4ad9e8c8aedd23a84a72fa57bdf8dadd9380761")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7f281edf0fceb53a741653e2779ea32ee2ed8b82")]
 [assembly: System.Reflection.AssemblyProductAttribute("otel_api.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("otel_api.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -14,9 +14,12 @@
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-router": "^1.170.17",
     "axios": "^1.18.1",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "recharts": "^3.10.0",
     "tailwindcss": "^4.3.2"
   },
   "devDependencies": {

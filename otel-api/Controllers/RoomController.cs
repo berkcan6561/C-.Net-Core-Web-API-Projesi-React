@@ -3,11 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using otel_api.Models;
 using otel_api.Services;
 
+using Microsoft.AspNetCore.RateLimiting;
+
 namespace otel_api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize] // 1- Bu Controller'a artık SADECE giriş yapmış kişiler erişebilir
+    [EnableRateLimiting("TokenBucketNavigation")]
     public class RoomController : ControllerBase
     {
         private readonly RoomService _roomService;
@@ -69,6 +72,54 @@ namespace otel_api.Controllers
         {
             await _roomService.DeleteRoomAsync(id);
             return NoContent();
+        }
+
+        [HttpPost("{id}/images")]
+        public async Task<IActionResult> UploadImages(int id, [FromForm] IFormFileCollection files)
+        {
+            var room = await _roomService.GetRoomByIdAsync(id);
+            if (room == null) return NotFound();
+
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "rooms");
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+            foreach (var file in files)
+            {
+                if (file.Length > 0)
+                {
+                    var sanitizedFileName = file.FileName.Replace(" ", "_");
+                    var uniqueFileName = Guid.NewGuid().ToString() + "_" + sanitizedFileName;
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+                    room.ImageUrls.Add($"/images/rooms/{uniqueFileName}");
+                }
+            }
+            await _roomService.UpdateRoomAsync(room);
+            return Ok(room);
+        }
+
+        [HttpDelete("{id}/images")]
+        public async Task<IActionResult> DeleteImage(int id, [FromBody] string imageUrl)
+        {
+            var room = await _roomService.GetRoomByIdAsync(id);
+            if (room == null) return NotFound();
+
+            if (room.ImageUrls.Contains(imageUrl))
+            {
+                room.ImageUrls.Remove(imageUrl);
+                await _roomService.UpdateRoomAsync(room);
+
+                // Fiziksel dosyayı da sunucudan sil (İsteğe bağlı ama önerilir)
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", imageUrl.TrimStart('/'));
+                if (System.IO.File.Exists(filePath))
+                    System.IO.File.Delete(filePath);
+            }
+            
+            return Ok(room);
         }
     }
 }

@@ -2,12 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using otel_api.Services;
 using System.Linq;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace otel_api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Roles = "Admin")]
+    [EnableRateLimiting("TokenBucketNavigation")]
     public class AccountingController : ControllerBase
     {
         private readonly ReservationService _reservationService;

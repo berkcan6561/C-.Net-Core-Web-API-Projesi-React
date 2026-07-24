@@ -3,4 +3,5 @@ export interface Room {
   roomNumber: string;
   capacity: number;
   pricePerNight: number;
+  imageUrls?: string[];
 }

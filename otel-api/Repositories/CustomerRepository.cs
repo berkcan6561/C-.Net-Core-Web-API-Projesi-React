@@ -14,7 +14,17 @@ namespace otel_api.Repositories
             var customers = await _db.Customers.ToListAsync();
             var users = await _db.Users.Where(u => u.CustomerId != null).ToListAsync();
             
-            foreach(var c in customers)
+            // E-postası onaylanmamış kullanıcıları tespit edip filtrele
+            var unverifiedCustomerIds = users
+                .Where(u => !u.IsEmailVerified && u.CustomerId.HasValue)
+                .Select(u => u.CustomerId.Value)
+                .ToList();
+
+            var filteredCustomers = customers
+                .Where(c => !unverifiedCustomerIds.Contains(c.Id))
+                .ToList();
+            
+            foreach(var c in filteredCustomers)
             {
                 var user = users.FirstOrDefault(u => u.CustomerId == c.Id);
                 if (user != null)
@@ -22,7 +32,7 @@ namespace otel_api.Repositories
                     c.LockoutEnd = user.LockoutEnd;
                 }
             }
-            return customers;
+            return filteredCustomers;
         }
 
         public async Task AddAsync(Customer customer)

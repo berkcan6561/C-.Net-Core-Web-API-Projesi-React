@@ -5,9 +5,11 @@ import type { Room } from '../types/room';
 import { Modal } from '../components/Modal';
 import { RoomForm } from '../components/RoomForm';
 import { Plus, Pencil, Trash2, BedDouble, Users } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
 
 export function Rooms() {
   const queryClient = useQueryClient();
+  const { formatPrice } = useCurrency();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
 
@@ -18,18 +20,10 @@ export function Rooms() {
 
   const createMutation = useMutation({
     mutationFn: createRoom,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rooms'] });
-      closeModal();
-    },
   });
 
   const updateMutation = useMutation({
     mutationFn: updateRoom,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rooms'] });
-      closeModal();
-    },
   });
 
   const deleteMutation = useMutation({
@@ -49,11 +43,29 @@ export function Rooms() {
     setEditingRoom(null);
   };
 
-  const handleSubmit = (data: Omit<Room, 'id'> | Room) => {
-    if ('id' in data) {
-      updateMutation.mutate(data as Room);
-    } else {
-      createMutation.mutate(data);
+  const handleSubmit = async (data: Omit<Room, 'id'> | Room, files?: FileList | null) => {
+    try {
+      let roomId: number;
+      
+      if ('id' in data) {
+        await updateMutation.mutateAsync(data as Room);
+        roomId = data.id;
+      } else {
+        const newRoom = await createMutation.mutateAsync(data);
+        roomId = newRoom.id;
+      }
+
+      // If files are selected, upload them
+      if (files && files.length > 0) {
+        const { uploadRoomImages } = await import('../api/roomService');
+        await uploadRoomImages(roomId, files);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      closeModal();
+    } catch (error) {
+      console.error("Oda kaydedilirken hata:", error);
+      alert("Oda kaydedilirken bir hata oluştu.");
     }
   };
 
@@ -121,7 +133,7 @@ export function Rooms() {
                     </span>
                   </td>
                   <td className="px-6 py-4 font-bold text-slate-900">
-                    {room.pricePerNight.toLocaleString('tr-TR')} ₺
+                    {formatPrice(room.pricePerNight)}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">

@@ -3,12 +3,14 @@ using otel_api.DTOs;
 using otel_api.Models;
 using otel_api.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace otel_api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize] 
+    [EnableRateLimiting("TokenBucketNavigation")]
     public class ReservationController : ControllerBase
     {
         private readonly ReservationService _service;
@@ -28,6 +30,7 @@ namespace otel_api.Controllers
             return Ok(r);
         }
         [HttpPost]
+        [EnableRateLimiting("StrictReservationLimit")]
         public async Task<IActionResult> Create([FromBody] ReservationRequest request)
         {
             var reservation = new Reservation

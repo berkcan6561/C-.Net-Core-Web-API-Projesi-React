@@ -6,6 +6,7 @@ import { Customers } from './pages/Customers';
 import { Reservations } from './pages/Reservations';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { Profile } from './pages/Profile';
 
 import { VerifyEmail } from './pages/VerifyEmail';
 import { ForgotPassword } from './pages/ForgotPassword';
@@ -78,6 +79,12 @@ const reservationsRoute = createRoute({
   component: Reservations,
 });
 
+const profileRoute = createRoute({
+  getParentRoute: () => authRoute,
+  path: '/profile',
+  component: Profile,
+});
+
 const routTree = rootRoute.addChildren([
   LoginRoute,
   RegisterRoute,
@@ -89,6 +96,7 @@ const routTree = rootRoute.addChildren([
     roomsRoute,
     customersRoute,
     reservationsRoute,
+    profileRoute,
   ]),
 ]);
 

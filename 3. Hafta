@@ -1,0 +1,23 @@
+1. Gelişmiş Kullanıcı Deneyimi ve Arayüz (Advanced User Experience & UI)
+Dinamik Döviz Kuru (CurrencyContext):Proje genelindeki tüm fiyatların TL, Dolar, Euro, Sterlin ve Yen formatında dinamik olarak çevrilip gösterilmesi için `CurrencyContext` entegrasyonu sağlandı.
+Oda Fotoğraf Galerisi ve Deep-Zoom:Odalara birden fazla fotoğraf ekleme yeteneği getirildi. Müşteri fotoğrafa tıkladığında arka planın karardığı ve görüntünün devasa boyutlara ulaştığı interaktif bir galeri (`RoomCarousel.tsx`) eklendi.
+
+2. Native PDF Fatura Altyapısı (Native PDF Invoice Generation)
+Vektörel Fatura Çıktısı:Harici, yavaş kütüphaneler (jsPDF vb.) iptal edilerek tamamen yerel (native) tarayıcı yazdırma altyapısı kuruldu. Arka planda gizli iframe oluşturularak kusursuz vektörel kalitede faturalar indirilmesi sağlandı.
+Rol Bazlı Fatura Erişimi:Hem müşterilerin kendi panellerinden (Dashboard) hem de adminlerin tüm rezervasyonlar sayfasından tek tıkla şık fatura üretebilecekleri bir mimari geliştirildi.
+
+3. Medya ve Dosya Yönetimi (Media & Multi-Image Handling)
+Static Files (wwwroot) Yapılandırması:Backend tarafında `wwwroot` aktif edilerek kullanıcıların profil resimleri ve odaların fotoğrafları kendi sunucumuzda güvenle barındırılmaya başlandı.
+Çoklu Fotoğraf Entegrasyonu (RoomImageUrls):Oda detaylarında artık birden çok resim linki tutabilmek için `Room` modeline `ImageUrls` listesi dahil edildi.
+
+4. Veritabanı ve Mimari Güncellemeleri (Database & Architecture Updates)
+Migration İşlemleri:Sisteme yeni eklenen profil fotoğrafı ve çoklu oda resimleri mimarisi için `AddRoomImageUrls` ve `AddAvatarToUser` isimli veritabanı göçleri (migration) başarıyla uygulandı ve veritabanı şeması genişletildi.
+Temizlik İşlemi (UnverifiedCleanupService):Background servisleri optimize edilerek hesaplarını doğrulamayan spam kullanıcıları düzenli olarak silen temizlik servisi entegre edildi.
+
+5. Hız Sınırlandırması ve Güvenlik (Rate Limiting & Security)
+Token Bucket ve Fixed Window Algoritmaları:Sunucuyu çökertmeye (DDoS) veya Brute Force yapmaya yönelik saldırıları engellemek için `Program.cs` dosyasına profesyonel kota sınırları eklendi.
+Kritik Rota Korumaları:Giriş/Kayıt olma gibi kritik API rotalarına 10 saniyede max 10 istek hakkı, rezervasyon oluşturma isteğine saatlik limitler ve genel site gezinmelerine özel yenilenen havuz (bucket) limitleri konuldu.
+
+6. Kimlik ve Profil Yönetimi (Identity & Profile Management)
+Profil Sayfası (Profile.tsx):Kullanıcıların avatarlarını değiştirebilecekleri, kişisel bilgilerini görebilecekleri ve mevcut oturumlarıyla şifrelerini güncelleyebilecekleri tam teşekküllü bir profil sayfası kodlandı.
+Şifre Değiştirme Modülü (ChangePasswordRequest):Backend'e `ChangePasswordRequest` DTO'su eklenerek güvenli şifre sıfırlama mekanizması aktif edildi.

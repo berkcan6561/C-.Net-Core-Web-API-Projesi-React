@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../api/axiosInstance';
-import { LogIn, ShieldAlert } from 'lucide-react';
+import { LogIn, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import lunaLogo from '../assets/luna-logo.png';
 import { Modal } from '../components/Modal';
 
 export function Login(){
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isBannedModalOpen, setIsBannedModalOpen] = useState(false);
     const [bannedMessage, setBannedMessage] = useState('');
@@ -121,14 +122,23 @@ export function Login(){
                             Şifremi Unuttum?
                         </Link>
                     </div>
-                    <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm"
-                    placeholder="••••••••"
-                    />
+                    <div className="relative">
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl pl-4 pr-12 py-2.5 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm"
+                            placeholder="••••••••"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none p-1 rounded-full hover:bg-slate-200/50 transition-colors"
+                        >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                    </div>
                    </div>
                   <button
                   type="submit"

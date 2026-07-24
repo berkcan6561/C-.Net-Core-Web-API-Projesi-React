@@ -8,16 +8,12 @@ export function VerifyEmail() {
   const search = useSearch({ strict: false }) as { token?: string };
   const token = search.token;
 
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>(!token ? 'error' : 'loading');
+  const [message, setMessage] = useState(!token ? 'Geçersiz doğrulama bağlantısı.' : '');
   const hasAttempted = useRef(false);
 
   useEffect(() => {
-    if (!token) {
-      setStatus('error');
-      setMessage('Geçersiz doğrulama bağlantısı.');
-      return;
-    }
+    if (!token) return;
 
     if (hasAttempted.current) return;
     hasAttempted.current = true;

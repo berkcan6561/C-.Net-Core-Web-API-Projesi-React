@@ -5,6 +5,7 @@ import type { Room } from '../types/room';
 import type { Customer } from '../types/customer';
 import type { Reservation, ReservationRequest } from '../types/reservation';
 import { BedDouble, Users, Moon, User, CalendarDays } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface BookModeProps {
   mode: 'book';
@@ -36,6 +37,7 @@ type ReservationFormProps = BookModeProps | EditModeProps;
 
 export function ReservationForm(props: ReservationFormProps) {
   const { mode, customers, onSubmit, onCancel, isSubmitting } = props;
+  const { formatPrice } = useCurrency();
 
   // Edit mode: need rooms list for dropdown
   const { data: allRooms } = useQuery({
@@ -121,11 +123,11 @@ export function ReservationForm(props: ReservationFormProps) {
               <span className="text-slate-900">{new Date(checkOutDate).toLocaleDateString('tr-TR')}</span>
             </div>
             <div className="h-px bg-slate-200 my-2" />
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500 flex items-center gap-1.5">
-                <Moon size={13} className="text-amber-500" /> {nights} Gece × {room.pricePerNight.toLocaleString('tr-TR')} ₺
+            <div className="flex justify-between items-center mt-3 pt-3 border-t border-blue-200">
+              <span className="text-slate-600 font-semibold flex items-center gap-2 text-sm">
+                <Moon size={13} className="text-amber-500" /> {nights} Gece × {formatPrice(room.pricePerNight)}
               </span>
-              <span className="text-blue-600 font-black text-lg">{totalPrice.toLocaleString('tr-TR')} ₺</span>
+              <span className="text-blue-600 font-black text-lg">{formatPrice(totalPrice)}</span>
             </div>
           </div>
         </div>

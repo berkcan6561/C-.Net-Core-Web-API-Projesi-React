@@ -6,6 +6,8 @@ import { router } from "./router";
 import { AuthProvider } from "./context/AuthContext";
 import "./index.css";
 
+import { CurrencyProvider } from "./context/CurrencyContext";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -18,9 +20,11 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
+      <CurrencyProvider>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </CurrencyProvider>
     </QueryClientProvider>
   </StrictMode>
 );

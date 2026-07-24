@@ -7,10 +7,15 @@ import type { Room } from '../types/room';
 import type { Reservation, ReservationRequest } from '../types/reservation';
 import { Modal } from '../components/Modal';
 import { ReservationForm } from '../components/ReservationForm';
-import { Pencil, Trash2, CalendarCheck, BedDouble, User, Search, Moon, Users, Sparkles, CalendarDays } from 'lucide-react';
+import { RoomCarousel } from '../components/RoomCarousel';
+import { Pencil, Trash2, CalendarCheck, BedDouble, User, Search, Moon, Users, Sparkles, CalendarDays, FileText } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export function Reservations() {
   const queryClient = useQueryClient();
+  const { formatPrice } = useCurrency();
 
   // Date selection state
   const [checkIn, setCheckIn] = useState('');
@@ -81,6 +86,36 @@ export function Reservations() {
       queryClient.invalidateQueries({ queryKey: ['availableRooms'] });
     },
   });
+
+  //pdf state'leri
+  const [invoiceData, setInoviceData] = useState<Reservation | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // pdf indirme fonksiyonu
+  const handleDowloadPdf = async (res: Reservation) => {
+    setIsGeneratingPdf(true);
+    setInoviceData(res); //faturaya basılacak veri
+
+    //react'in dom'u güncellemesi için çok kısa bir süre tanıyoruz
+    setTimeout(async () => {
+      const element = document.getElementById('pdf-invoice-template');
+      if(element){
+        //html2 canvas ile tasarımın fotoğrafını yüksek kalitede çekiyor
+        const canvas = await html2canvas(element, { scale: 2, useCORS: true});
+        const imgData = canvas.toDataURL('image/png');
+
+        //a4 boyutunda pdf
+        const pdf = new jsPDF('p','mm','a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save('The_Luna_Suites_Rezervasyon_${res.id}.pdf');
+      }
+      setIsGeneratingPdf(false);
+      setInoviceData(null);
+    }, 300);
+  };
 
   // Handlers
   const handleSearch = () => {
@@ -261,6 +296,8 @@ export function Reservations() {
                   className="group relative bg-white border border-slate-200 rounded-3xl overflow-hidden hover:border-blue-300 transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-xl"
                   style={{ animationDelay: `${index * 80}ms` }}
                 >
+                  <RoomCarousel imageUrls={room.imageUrls} />
+                  
                   {/* Room number badge */}
                   <div className="absolute top-4 right-4 z-10">
                     <div className="px-3 py-1.5 rounded-xl bg-white/90 backdrop-blur-sm border border-slate-200 text-slate-800 font-bold text-sm flex items-center gap-1.5 shadow-sm">
@@ -290,13 +327,13 @@ export function Reservations() {
                     <div className="space-y-2">
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-500">Gecelik Fiyat</span>
-                        <span className="text-slate-900 font-bold">{room.pricePerNight.toLocaleString('tr-TR')} ₺</span>
+                        <span className="text-slate-900 font-bold">{formatPrice(room.pricePerNight)}</span>
                       </div>
                       <div className="h-px bg-slate-200" />
                       <div className="flex justify-between items-center">
                         <span className="text-slate-600 text-sm font-semibold">{nights} Gece Toplam</span>
                         <span className="text-blue-600 font-black text-xl tracking-tight">
-                          {(room.pricePerNight * nights).toLocaleString('tr-TR')} ₺
+                          {formatPrice(room.pricePerNight * nights)}
                         </span>
                       </div>
                     </div>
@@ -382,7 +419,7 @@ export function Reservations() {
                         </div>
                       </td>
                       <td className="px-6 py-4 font-bold text-slate-900 text-base">
-                        {reservation.totalPrice.toLocaleString('tr-TR')} ₺
+                        {formatPrice(reservation.totalPrice)}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">

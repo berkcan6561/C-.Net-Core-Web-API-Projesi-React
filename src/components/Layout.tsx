@@ -1,12 +1,14 @@
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
-import { LayoutDashboard, BedDouble, Users, CalendarCheck, LogOut } from 'lucide-react';
+import { LayoutDashboard, BedDouble, Users, CalendarCheck, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 import lunaLogo from '../assets/luna-logo.png';
 
 export function Layout() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const { user, logout, isAdmin } = useAuth(); 
+  const { currency, setCurrency } = useCurrency();
 
   
   const navItems = [
@@ -14,6 +16,7 @@ export function Layout() {
     { to: '/rooms', label: 'Odalar', icon: <BedDouble size={20} />, show: isAdmin },
     { to: '/customers', label: 'Müşteriler', icon: <Users size={20} />, show: isAdmin },
     { to: '/reservations', label: 'Rezervasyonlar', icon: <CalendarCheck size={20} />, show: isAdmin },
+    { to: '/profile', label: 'Profilim', icon: <UserIcon size={20} />, show: true },
   ];
 
   const handleLogout = () => {
@@ -80,8 +83,12 @@ export function Layout() {
         <div className="p-4 m-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
              {/* Profil Avatarı */}
-            <div className="w-9 h-9 rounded-full flex-shrink-0 bg-slate-200 flex items-center justify-center text-slate-700 font-bold text-sm">
-              {user?.fullName?.charAt(0) || 'U'}
+            <div className="w-9 h-9 rounded-full flex-shrink-0 bg-slate-200 flex items-center justify-center text-slate-700 font-bold text-sm overflow-hidden">
+              {user?.avatarUrl ? (
+                <img src={`http://localhost:5184${user.avatarUrl}`} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                user?.fullName?.charAt(0) || 'U'
+              )}
             </div>
             <div className="overflow-hidden">
               <h4 className="text-sm font-semibold text-slate-900 truncate">{user?.fullName || 'Misafir'}</h4>
@@ -100,9 +107,26 @@ export function Layout() {
       </aside>
 
       {/* Ana İçerik Alanı */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto relative">
+        {/* Üst Bar: Para Birimi Seçici */}
+        <div className="absolute top-6 right-8 lg:right-12 z-20 flex items-center bg-white rounded-full shadow-sm border border-slate-200 p-1">
+          {(['TRY', 'USD', 'EUR'] as const).map((curr) => (
+            <button
+              key={curr}
+              onClick={() => setCurrency(curr)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all ${
+                currency === curr 
+                  ? 'bg-blue-600 text-white shadow-md' 
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              {curr === 'TRY' ? '₺' : curr === 'USD' ? '$' : '€'}
+            </button>
+          ))}
+        </div>
+
         {/* Sayfaların (Dashboard, Rooms vs.) render edildiği yer */}
-        <div className="max-w-7xl mx-auto p-8 lg:p-12 h-full">
+        <div className="max-w-7xl mx-auto p-8 lg:p-12 h-full mt-10">
           <Outlet />
         </div>
       </main>

@@ -14,7 +14,18 @@ axiosInstance.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`; 
   }
   return config;
-  },(error) => {
+  }, (error) => {
     return Promise.reject(error);
   });
-  export default axiosInstance;
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 429) {
+      error.response.data = 'Çok fazla işlem yaptınız. Güvenlik nedeniyle lütfen biraz bekleyip daha sonra tekrar deneyin.';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default axiosInstance;
