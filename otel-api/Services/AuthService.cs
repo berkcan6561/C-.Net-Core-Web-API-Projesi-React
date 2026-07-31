@@ -132,7 +132,8 @@ namespace otel_api.Services
                 Role = user.Role,
                 FullName = $"{user.FirstName} {user.LastName}",
                 UserId = user.Id,
-                CustomerId = user.CustomerId
+                CustomerId = user.CustomerId,
+                AvatarUrl = user.AvatarUrl
             });
         }
 

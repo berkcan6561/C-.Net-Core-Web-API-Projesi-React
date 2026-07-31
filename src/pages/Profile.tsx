@@ -2,9 +2,12 @@ import { useState, useRef } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import { useAuth } from '../context/AuthContext';
 import { Camera, Lock, CheckCircle2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 export function Profile() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const { t } = useTranslation();
   
   // State'ler
   const [avatar, setAvatar] = useState(user?.avatarUrl ? `http://localhost:5184${user.avatarUrl}` : 'https://ui-avatars.com/api/?name=' + user?.fullName);
@@ -12,6 +15,18 @@ export function Profile() {
   const [newPassword, setNewPassword] = useState('');
   const [message, setMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Backend'den dönen Türkçe hataları yakalayıp mevcut dile çeviren yardımcı fonksiyon
+  const getErrorMessage = (errData: any, defaultKey: string) => {
+    if (typeof errData === 'string') {
+      if (errData.includes('Dosya boyutu')) return t('profile.errors.fileTooLarge');
+      if (errData.includes('Sadece resim')) return t('profile.errors.invalidFileType');
+      if (errData.includes('Dosya seçilmedi')) return t('profile.errors.noFileSelected');
+      if (errData.includes('Mevcut şifreniz yanlış')) return t('profile.errors.wrongPassword');
+      return errData;
+    }
+    return t(defaultKey);
+  };
 
   // Avatar Yükleme İşlemi
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,10 +40,14 @@ export function Profile() {
       const res = await axiosInstance.post('/Auth/upload-avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setAvatar('http://localhost:5184' + res.data.avatarUrl); // API portuna göre ayarla
-      setMessage('Profil resmi başarıyla güncellendi!');
+      const newAvatarUrl = res.data.avatarUrl;
+      setAvatar('http://localhost:5184' + newAvatarUrl); // API portuna göre ayarla
+      updateUser({ avatarUrl: newAvatarUrl }); // <--- Global state'i günceller
+      toast.success(t('profile.photoSuccess'));
     } catch (err: any) {
-      alert("Resim yüklenirken hata oluştu.");
+      if (err.response?.status !== 429) {
+        toast.error(getErrorMessage(err.response?.data, 'profile.photoError'));
+      }
     }
   };
 
@@ -40,17 +59,19 @@ export function Profile() {
         oldPassword,
         newPassword
       });
-      setMessage('Şifreniz başarıyla değiştirildi!');
+      toast.success(t('profile.passwordSuccess'));
       setOldPassword('');
       setNewPassword('');
     } catch (err: any) {
-      alert(err.response?.data || "Şifre değiştirilemedi.");
+      if (err.response?.status !== 429) {
+        toast.error(getErrorMessage(err.response?.data, 'profile.passwordError'));
+      }
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pt-8">
-      <h1 className="text-3xl font-extrabold text-slate-900">Profil Yönetimi</h1>
+      <h1 className="text-3xl font-extrabold text-slate-900">{t('profile.title')}</h1>
       
       {message && (
         <div className="bg-emerald-50 text-emerald-600 p-4 rounded-xl flex items-center gap-2 font-medium animate-slide-in">
@@ -69,20 +90,20 @@ export function Profile() {
           </div>
           <input type="file" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" accept="image/*" />
           <h2 className="text-xl font-bold text-slate-900">{user?.fullName}</h2>
-          <p className="text-slate-500 text-sm mt-1">{user?.role === 'Admin' ? 'Otel Yöneticisi' : 'Değerli Müşterimiz'}</p>
+          <p className="text-slate-500 text-sm mt-1">{user?.role === 'Admin' ? t('profile.valuableAdmin') : t('profile.valuableCustomer')}</p>
           <button onClick={() => fileInputRef.current?.click()} className="mt-6 text-sm font-bold text-blue-600 bg-blue-50 px-5 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white transition-colors w-full">
-            Fotoğrafı Değiştir
+            {t('profile.changePhoto')}
           </button>
         </div>
 
         {/* ŞİFRE DEĞİŞTİRME KISMI */}
         <div className="md:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
           <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <Lock className="text-blue-500 w-5 h-5" /> Güvenlik & Şifre Değiştir
+            <Lock className="text-blue-500 w-5 h-5" /> {t('profile.securityAndPassword')}
           </h2>
           <form onSubmit={handlePasswordChange} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Mevcut Şifreniz</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t('profile.currentPassword')}</label>
               <input 
                 type="password" 
                 value={oldPassword} 
@@ -92,7 +113,7 @@ export function Profile() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Yeni Şifreniz</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t('profile.newPassword')}</label>
               <input 
                 type="password" 
                 value={newPassword} 
@@ -103,7 +124,7 @@ export function Profile() {
             </div>
             <div className="pt-2">
               <button type="submit" className="bg-blue-600 text-white font-bold py-3.5 px-6 rounded-xl hover:bg-blue-700 hover:shadow-lg transition-all w-full md:w-auto">
-                Şifreyi Güncelle
+                {t('profile.updatePassword')}
               </button>
             </div>
           </form>

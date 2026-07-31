@@ -5,6 +5,7 @@ import axiosInstance from '../api/axiosInstance';
 import { BedDouble, CalendarCheck, DollarSign, Trash2, Calendar, X, Activity, ArrowRight, FileText } from 'lucide-react';
 import { RoomCarousel } from '../components/RoomCarousel';
 import { useCurrency } from '../context/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -13,6 +14,7 @@ import {
 export function Dashboard() {
   const { user, isAdmin } = useAuth();
   const { formatPrice } = useCurrency();
+  const { t } = useTranslation();
   
   const [rooms, setRooms] = useState<any[]>([]);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -206,10 +208,10 @@ export function Dashboard() {
       {/* BAŞLIK (Premium Gradient Efektli) */}
       <div className="animate-slide-in" style={{ animationDelay: '0.1s' }}>
         <h1 className="text-3xl font-extrabold bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 bg-clip-text text-transparent">
-          {isAdmin ? 'Yönetim Paneli Özeti' : 'Hoş Geldiniz, ' + (user?.fullName || '')}
+          {isAdmin ? t('dashboard.welcomeAdmin') : t('dashboard.welcomeCustomer', { name: user?.fullName || '' })}
         </h1>
         <p className="text-slate-500 text-sm mt-2 font-medium">
-          {isAdmin ? 'Otelin genel durumunu ve finansal verileri buradan takip edebilirsiniz.' : 'Aşağıdan odalarımızı inceleyebilir ve rezervasyon yapabilirsiniz.'}
+          {isAdmin ? t('dashboard.subtitleAdmin') : t('dashboard.subtitleCustomer')}
         </p>
       </div>
 
@@ -363,7 +365,7 @@ export function Dashboard() {
       {!isAdmin && (
         <div className="mt-8 animate-slide-in" style={{ animationDelay: '0.2s' }}>
           <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <BedDouble className="text-blue-500 w-5 h-5" /> Kiralayabileceğiniz Odalar
+            <BedDouble className="text-blue-500 w-5 h-5" /> {t('dashboard.availableRooms')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {rooms.map((room, idx) => (
@@ -376,17 +378,17 @@ export function Dashboard() {
                 <RoomCarousel imageUrls={room.imageUrls} />
                 <div className="flex justify-between items-start mb-4">
                   <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-700 transition-colors">
-                    Oda {room.roomNumber}
+                    {t('dashboard.roomNo')} {room.roomNumber}
                   </span>
-                  <span className="text-blue-600 font-bold text-xl">{formatPrice(room.pricePerNight)} <span className="text-xs text-slate-400 font-normal">/gece</span></span>
+                  <span className="text-blue-600 font-bold text-xl">{formatPrice(room.pricePerNight)} <span className="text-xs text-slate-400 font-normal">{t('dashboard.perNight')}</span></span>
                 </div>
-                <h3 className="text-slate-700 font-medium mb-1">Kapasite: {room.capacity} Kişi</h3>
+                <h3 className="text-slate-700 font-medium mb-1">{t('dashboard.capacity', { count: room.capacity })}</h3>
                 
                 <button 
                   onClick={() => setSelectedRoom(room)}
                   className="w-full mt-6 flex items-center justify-center gap-2 bg-slate-50 text-slate-700 font-bold py-3 rounded-xl border border-slate-200 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300 text-sm"
                 >
-                  Rezervasyon Yap
+                  {t('dashboard.bookNow')}
                   <ArrowRight size={16} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
                 </button>
               </div>
@@ -398,24 +400,24 @@ export function Dashboard() {
       {/* 3. REZERVASYON TABLOSU */}
       <div className="pt-6 animate-slide-in" style={{ animationDelay: isAdmin ? '0.6s' : '0.4s' }}>
         <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <Calendar className="text-purple-500 w-5 h-5" /> {isAdmin ? 'Tüm Rezervasyonlar' : 'Rezervasyonlarım'}
+          <Calendar className="text-purple-500 w-5 h-5" /> {isAdmin ? t('dashboard.allReservations') : t('dashboard.myReservations')}
         </h2>
         
         {reservations.length === 0 ? (
           <div className="text-slate-500 text-sm p-8 bg-white rounded-2xl border border-slate-200 text-center shadow-sm">
-            Henüz hiç rezervasyon bulunmuyor.
+            {t('dashboard.noReservations')}
           </div>
         ) : (
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <table className="w-full text-left text-sm text-slate-600">
               <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-4">Oda No</th>
-                  {isAdmin && <th className="px-6 py-4">Müşteri</th>}
-                  <th className="px-6 py-4">Giriş Tarihi</th>
-                  <th className="px-6 py-4">Çıkış Tarihi</th>
-                  <th className="px-6 py-4 text-slate-900">Tutar</th>
-                  <th className="px-6 py-4 text-right">İşlem</th>
+                  <th className="px-6 py-4">{t('dashboard.roomNo')}</th>
+                  {isAdmin && <th className="px-6 py-4">{t('dashboard.customer')}</th>}
+                  <th className="px-6 py-4">{t('dashboard.checkIn')}</th>
+                  <th className="px-6 py-4">{t('dashboard.checkOut')}</th>
+                  <th className="px-6 py-4 text-slate-900">{t('dashboard.amount')}</th>
+                  <th className="px-6 py-4 text-right">{t('dashboard.action')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -424,7 +426,7 @@ export function Dashboard() {
                   return (
                     // Tablo Satırı Hover
                     <tr key={res.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="px-6 py-4 font-medium">Oda {res.room?.roomNumber || res.roomId}</td>
+                      <td className="px-6 py-4 font-medium">{t('dashboard.roomNo')} {res.room?.roomNumber || res.roomId}</td>
                       {isAdmin && <td className="px-6 py-4 font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
                         {res.customer ? `${res.customer.firstName} ${res.customer.lastName}` : `Müşteri ${res.customerId}`}
                       </td>}
@@ -450,7 +452,7 @@ export function Dashboard() {
                               <Trash2 size={18} />
                             </button>
                           ) : (
-                            <span className="text-slate-500 text-xs font-bold bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">TAMAMLANDI</span>
+                            <span className="text-slate-500 text-xs font-bold bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">{t('dashboard.completed')}</span>
                           )}
                         </div>
                       </td>

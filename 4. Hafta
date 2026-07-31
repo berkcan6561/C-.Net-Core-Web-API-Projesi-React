@@ -1,0 +1,14 @@
+1. Hız Sınırlandırması ve Hata Yönetimi (Rate Limiting & Error Handling)
+429 Too Many Requests Bildirimi: Kullanıcıların arka arkaya çok fazla işlem yapması durumunda sistemin verdiği 429 (Çok Fazla İstek) hataları için frontend tarafına (axiosInstance.ts) react-hot-toast kullanılarak global bir bildirim (toast) entegre edildi.
+Admin Sınırlandırmalarının Kaldırılması: Yönetici (Admin) hesaplarının işlemleri sırasında takılmaması için rezervasyon ve panel (dashboard) üzerindeki gereksiz hız sınırları (Rate Limit) kaldırılarak yöneticilere tam yetki ve özgürlük sağlandı.
+
+2. Medya ve Profil Yönetimi (Media & Profile Management)
+Profil Resmi Yükleme İyileştirmeleri: Profil sayfası üzerinden resim yüklerken meydana gelen sunucu taraflı klasör ve dosya sistemi kaynaklı çökmeler tespit edilip kalıcı olarak giderildi.
+Avatar Yükleme Güvenliği: Kötü niyetli ve art arda dosya yükleme işlemlerini (Spam) engellemek amacıyla, profil resmi yükleme uç noktasına (endpoint) özel bir hız sınırlandırması (Rate Limit) eklendi.
+
+3. Kritik Rota Güvenliği (Strict Security Limits)
+Auth Endpoint Koruması: Şifre sıfırlama, yeni şifre belirleme ve doğrulama e-postası gönderme (resend) gibi siber saldırılara (Brute Force vb.) en açık API rotalarına (AuthController) katı güvenlik limitleri (StrictSecurityLimit) başarıyla uygulandı.
+
+4. Çoklu Dil Desteği ve Globalizasyon (i18n & Globalization)
+Dil Altyapısı (react-i18next): Projeye Türkçe (TR), İngilizce (EN) ve Almanca (DE) dillerini destekleyen tam teşekküllü çoklu dil altyapısı (i18n) kuruldu. Her dil için özel JSON dosyaları (locales) entegre edildi.
+Arayüz (UI) Dil Değiştirici Butonu: Yalnızca yönetim panelinde değil; Giriş Yap, Kayıt Ol, Şifremi Unuttum, Yeni Şifre Belirle ve E-posta Doğrulama gibi tüm dış sayfalara da anında dil geçişi yapmayı sağlayan şık bir dil değiştirme butonu yerleştirildi.

@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { Mail, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import axiosInstance from '../api/axiosInstance';
-import logo from '../assets/luna-logo.png';
+import lunaLogo from '../assets/luna-logo.png';
+import { useTranslation } from 'react-i18next';
 
 export function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const { t, i18n } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,13 +30,30 @@ export function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative">
+      {/* Dil Seçici */}
+      <div className="absolute top-6 right-6 z-20 flex items-center bg-white rounded-full shadow-sm border border-slate-200 p-1 animate-fade-in">
+          {(['tr', 'en', 'de']).map((lng) => (
+              <button
+                  key={lng}
+                  onClick={() => i18n.changeLanguage(lng)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all uppercase ${
+                      i18n.language === lng 
+                          ? 'bg-amber-500 text-white shadow-md' 
+                          : 'text-slate-500 hover:bg-slate-100'
+                  }`}
+              >
+                  {lng}
+              </button>
+          ))}
+      </div>
+
       <div className="w-full max-w-md">
         
         <div className="text-center mb-8">
-          <img src={logo} alt="Luna Suites Logo" className="h-16 mx-auto mb-6 object-contain" />
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Şifremi Unuttum</h1>
-          <p className="text-slate-500 mt-2">E-posta adresinizi girin, size sıfırlama bağlantısı gönderelim.</p>
+          <img src={lunaLogo} alt="Luna Suites Logo" className="h-16 mx-auto mb-6 object-contain" />
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('pages.forgotPassword.title')}</h1>
+          <p className="text-slate-500 mt-2">{t('pages.forgotPassword.desc')}</p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
@@ -48,9 +67,10 @@ export function ForgotPassword() {
               <p className="text-slate-600 mb-6">{message}</p>
               <button
                 onClick={() => navigate({ to: '/login' })}
-                className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-md hover:-translate-y-0.5"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-md hover:-translate-y-0.5"
               >
-                Giriş Sayfasına Dön
+                <ArrowLeft size={18} />
+                {t('pages.forgotPassword.backToLogin')}
               </button>
             </div>
           ) : (
@@ -63,7 +83,7 @@ export function ForgotPassword() {
               )}
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">E-Posta Adresi</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">{t('pages.forgotPassword.emailLabel')}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                     <Mail size={20} />
@@ -74,7 +94,7 @@ export function ForgotPassword() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium text-slate-900 placeholder:text-slate-400 outline-none"
-                    placeholder="ornek@email.com"
+                    placeholder={t('pages.forgotPassword.emailPlaceholder')}
                     disabled={status === 'loading'}
                   />
                 </div>
@@ -82,28 +102,32 @@ export function ForgotPassword() {
 
               <button
                 type="submit"
-                disabled={status === 'loading' || !email}
-                className="w-full py-3.5 bg-slate-900 text-amber-500 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center"
+                disabled={status === 'loading'}
+                className="w-full py-3.5 bg-slate-900 text-amber-500 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
               >
                 {status === 'loading' ? (
                   <Loader2 size={20} className="animate-spin text-white" />
                 ) : (
-                  'Sıfırlama Bağlantısı Gönder'
+                  <>
+                    <Mail size={20} />
+                    {t('pages.forgotPassword.sendButton')}
+                  </>
                 )}
               </button>
 
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: '/login' })}
+                  className="text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors inline-flex items-center gap-1"
+                >
+                  <ArrowLeft size={16} />
+                  {t('pages.forgotPassword.backToLogin')}
+                </button>
+              </div>
             </form>
           )}
 
-        </div>
-
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => navigate({ to: '/login' })}
-            className="text-slate-500 hover:text-slate-800 font-bold text-sm inline-flex items-center gap-1.5 transition-colors"
-          >
-            <ArrowLeft size={16} /> Giriş Ekranına Dön
-          </button>
         </div>
       </div>
     </div>

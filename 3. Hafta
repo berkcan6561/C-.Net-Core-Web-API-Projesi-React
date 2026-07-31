@@ -1,5 +1,5 @@
 1. Gelişmiş Kullanıcı Deneyimi ve Arayüz (Advanced User Experience & UI)
-Dinamik Döviz Kuru (CurrencyContext):Proje genelindeki tüm fiyatların TL, Dolar, Euro, Sterlin ve Yen formatında dinamik olarak çevrilip gösterilmesi için `CurrencyContext` entegrasyonu sağlandı.
+Dinamik Döviz Kuru (CurrencyContext):Proje genelindeki tüm fiyatların TL, Dolar ve Euro formatında dinamik olarak çevrilip gösterilmesi için `CurrencyContext` entegrasyonu sağlandı.
 Oda Fotoğraf Galerisi ve Deep-Zoom:Odalara birden fazla fotoğraf ekleme yeteneği getirildi. Müşteri fotoğrafa tıkladığında arka planın karardığı ve görüntünün devasa boyutlara ulaştığı interaktif bir galeri (`RoomCarousel.tsx`) eklendi.
 
 2. Native PDF Fatura Altyapısı (Native PDF Invoice Generation)

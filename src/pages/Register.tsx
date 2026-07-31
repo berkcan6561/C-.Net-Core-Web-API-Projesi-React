@@ -4,6 +4,7 @@ import { useNavigate, Link } from '@tanstack/react-router';
 import axiosInstance from '../api/axiosInstance';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
 import lunaLogo from '../assets/luna-logo.png';
+import { useTranslation } from 'react-i18next';
 
 export function Register() {
   const [formData, setFormData] = useState({
@@ -16,6 +17,7 @@ export function Register() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,15 +28,32 @@ export function Register() {
     try {
       await axiosInstance.post('/Auth/register', formData);
       // login() fonksiyonunu çağırmıyoruz çünkü henüz e-posta onayı yok!
-      alert('Kayıt başarılı! Lütfen giriş yapmadan önce e-posta adresinize gelen linke tıklayarak hesabınızı onaylayın.');
+      alert(t('auth.errors.registerSuccess'));
       navigate({ to: '/login' });
     } catch (err: any) {
-      setError(err.response?.data || 'Kayıt işlemi başarısız oldu.');
+      setError(err.response?.data || t('auth.errors.registerFailed'));
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 relative p-4">
+      {/* Dil Seçici (Sağ Üst Köşe) */}
+      <div className="absolute top-6 right-6 z-20 flex items-center bg-white rounded-full shadow-sm border border-slate-200 p-1 animate-fade-in">
+          {(['tr', 'en', 'de']).map((lng) => (
+              <button
+                  key={lng}
+                  onClick={() => i18n.changeLanguage(lng)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all uppercase ${
+                      i18n.language === lng 
+                          ? 'bg-amber-500 text-white shadow-md' 
+                          : 'text-slate-500 hover:bg-slate-100'
+                  }`}
+              >
+                  {lng}
+              </button>
+          ))}
+      </div>
+
       <div className="w-full max-w-xl bg-white border border-slate-200 rounded-3xl p-8 relative z-10 shadow-2xl animate-slide-in">
         <div className="flex flex-col items-center mb-6">
           <img 
@@ -43,9 +62,9 @@ export function Register() {
             className="w-40 h-auto object-contain mix-blend-multiply mb-4"
           />
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Aramıza Katıl
+            {t('auth.registerTitle')}
           </h1>
-          <p className="text-slate-500 mt-1 text-sm">Hemen hesap oluşturun ve rezervasyon yapın.</p>
+          <p className="text-slate-500 mt-1 text-sm">{t('auth.registerSubtitle')}</p>
         </div>
 
         {error && (
@@ -57,27 +76,27 @@ export function Register() {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">Ad</label>
-              <input type="text" name="firstName" required onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm" placeholder="Adınız" />
+              <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">{t('auth.firstNameLabel')}</label>
+              <input type="text" name="firstName" required onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm" placeholder={t('auth.firstNamePlaceholder')} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">Soyad</label>
-              <input type="text" name="lastName" required onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm" placeholder="Soyadınız" />
+              <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">{t('auth.lastNameLabel')}</label>
+              <input type="text" name="lastName" required onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm" placeholder={t('auth.lastNamePlaceholder')} />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">E-posta</label>
-            <input type="email" name="email" required onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm" placeholder="E-Posta adresiniz" />
+            <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">{t('auth.emailLabel')}</label>
+            <input type="email" name="email" required onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm" placeholder={t('auth.emailPlaceholder')} />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">Telefon</label>
-            <input type="tel" name="phoneNumber" required onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm" placeholder="Telefon numaranız" />
+            <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">{t('auth.phoneLabel')}</label>
+            <input type="tel" name="phoneNumber" required onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm" placeholder={t('auth.phonePlaceholder')} />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">Şifre</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase tracking-wider">{t('auth.passwordLabel')}</label>
             <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"} 
@@ -85,7 +104,7 @@ export function Register() {
                 required 
                 onChange={handleChange} 
                 className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 pr-12 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition-all placeholder-slate-400 text-sm" 
-                placeholder="••••••••" 
+                placeholder={t('auth.passwordPlaceholder')} 
               />
               <button
                 type="button"
@@ -100,14 +119,14 @@ export function Register() {
 
           <button type="submit" className="w-full flex items-center justify-center gap-2 bg-slate-900 text-amber-500 font-bold py-3 rounded-xl hover:bg-slate-800 transition-all shadow-md hover:shadow-lg mt-4 text-sm">
             <UserPlus size={18} />
-            Kayıt Ol
+            {t('auth.registerButton')}
           </button>
         </form>
 
         <div className="mt-5 text-center text-sm text-slate-500">
-          Zaten hesabın var mı?{' '}
+          {t('auth.hasAccount')}{' '}
           <Link to="/login" className="text-slate-900 font-bold hover:text-amber-600 transition-colors">
-            Giriş Yap
+            {t('auth.loginNow')}
           </Link>
         </div>
       </div>

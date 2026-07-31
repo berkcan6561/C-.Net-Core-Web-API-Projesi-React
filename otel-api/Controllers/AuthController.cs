@@ -34,6 +34,7 @@ namespace otel_api.Controllers
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Data);
         }
+        [EnableRateLimiting("StrictSecurityLimit")]
         [HttpGet("verify-email")]
         public async Task<IActionResult> VerifyEmail([FromQuery] string token)
         {
@@ -43,6 +44,7 @@ namespace otel_api.Controllers
             return Ok(new { message = result.Message });
         }
 
+        [EnableRateLimiting("StrictSecurityLimit")]
         [HttpPost("resend-verification-email")]
         public async Task<IActionResult> ResendVerificationEmail([FromBody] ResendVerificationEmailRequest request)
         {
@@ -51,6 +53,7 @@ namespace otel_api.Controllers
             return Ok(new { message = result.Message });
         }
 
+        [EnableRateLimiting("StrictSecurityLimit")]
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
@@ -59,6 +62,7 @@ namespace otel_api.Controllers
             return Ok(new { message = result.Message });
         }
 
+        [EnableRateLimiting("StrictSecurityLimit")]
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
         {
@@ -86,10 +90,15 @@ namespace otel_api.Controllers
         }
 
         [Authorize]
+        [EnableRateLimiting("AvatarUploadLimit")] 
         [HttpPost("upload-avatar")]
         public async Task<IActionResult> UploadAvatar(IFormFile file)
         {
             if (file == null || file.Length == 0) return BadRequest("Dosya seçilmedi.");
+
+            // 2 mb dosya boyutu sınırı
+            if (file.Length > 2 * 1024 * 1024)
+                return BadRequest("Dosya boyutu en fazla 2 MB olabilir");
 
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();

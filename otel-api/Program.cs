@@ -71,10 +71,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         // Dashboard vb. normal gezinmeler için Token Bucket Rate Limiter
         Options.AddPolicy("TokenBucketNavigation", context =>
         {
+            var isAdmin = context.User.IsInRole("Admin");
+
             var key = context.User.Identity?.IsAuthenticated == true 
                 ? context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
                 : context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
+            if (isAdmin)
+            {
+                return RateLimitPartition.GetNoLimiter(key!);
+            }
             return RateLimitPartition.GetTokenBucketLimiter(key!, _ =>
                 new TokenBucketRateLimiterOptions
                 {
@@ -88,9 +94,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         // Rezervasyon oluşturma için JWT'deki Kullanıcı ID'sine (NameIdentifier) dayalı katı limit
         Options.AddPolicy("StrictReservationLimit", context =>
         {
+            var isAdmin = context.User.IsInRole("Admin");
             var userId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
                          ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
+            
+            if( isAdmin)
+            {
+                return RateLimitPartition.GetNoLimiter(userId);
+            }
             return RateLimitPartition.GetFixedWindowLimiter(userId, _ =>
                 new FixedWindowRateLimiterOptions
                 {
@@ -98,6 +109,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     Window = TimeSpan.FromHours(1),
                     QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
                     QueueLimit = 0 
+                });
+        });
+        
+        //Profil resmi için rate limit
+        Options.AddPolicy("AvatarUploadLimit", context =>
+        {
+            var userId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unkown";
+            return RateLimitPartition.GetFixedWindowLimiter(userId, _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromHours(1),
+                QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            });
+        });
+
+        // Güvenlik işlemleri (Şifre sıfırlama, E-posta doğrulama) için katı limit (Brute-Force Koruması)
+        Options.AddPolicy("StrictSecurityLimit", context =>
+        {
+            var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return RateLimitPartition.GetFixedWindowLimiter(ip, _ =>
+                new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5, // 15 dakikada en fazla 5 istek (Spam/Brute-Force engeller)
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
                 });
         });
 

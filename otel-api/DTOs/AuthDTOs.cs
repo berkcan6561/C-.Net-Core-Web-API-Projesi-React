@@ -20,5 +20,6 @@ namespace otel_api.DTOs
         public string FullName { get; set; } = string.Empty;
         public int UserId { get; set; }
         public int? CustomerId { get; set; }
+        public string? AvatarUrl { get; set; }
     }
 }
