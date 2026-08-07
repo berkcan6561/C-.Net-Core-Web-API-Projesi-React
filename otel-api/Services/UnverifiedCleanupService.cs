@@ -30,15 +30,15 @@ namespace otel_api.Services
 
                     // E-postası onaylanmamış ve token süresi dolmuş hesapları sil (Admin'in eklediği gerçek müşterilerin Customer nesnesi var diye user silinince customer silinmez, ama register olanlar user olarak eklenir)
                     var expiredUsers = await db.Users
-                        .Where(u => !u.IsEmailVerified && u.VerificationTokenExpiry < DateTime.UtcNow)
+                        .Where(u => !u.IsEmailVerified && u.VerificationTokenExpiry < DateTime.UtcNow).Take(500) // tek seferde en fazla 500
                         .ToListAsync(stoppingToken);
 
                     if (expiredUsers.Any())
                     {
                         // 1. Silinecek kullanıcıların Customer Id'lerini al
                         var customerIds = expiredUsers
-                            .Where(u => u.CustomerId.HasValue)
-                            .Select(u => u.CustomerId.Value)
+                            .Where(u => u.CustomerId != null)
+                            .Select(u => u.CustomerId!.Value)
                             .ToList();
 
                         // 2. Önce bu Customer (Müşteri) kayıtlarını veritabanından sil

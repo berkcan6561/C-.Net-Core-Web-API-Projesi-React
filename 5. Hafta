@@ -1,0 +1,18 @@
+1. Kapsamlı Kod İncelemesi ve Zafiyet Analizi (Code Review & Vulnerability Analysis)
+Güvenlik Denetimi: Sistemdeki kritik güvenlik açıklarını ve mantıksal hataları tespit etmek amacıyla tüm backend servisleri ve controller yapıları üzerinde derinlemesine bir kod incelemesi (Code Review) yapıldı.
+Yetkilendirme Koruması: Sadece yöneticilerin erişmesi gereken frontend sayfaları ve backend uç noktaları (endpoint) özel "Admin" yetkisi ile sınırlandırılarak yetkisiz erişimler engellendi.
+
+2. Veritabanı ve İşlem Bütünlüğü (Transaction & Data Consistency)
+Hayalet Müşteri (Ghost Account) Koruması: Kayıt işlemi (Register) sırasında müşteri ve kullanıcı tablolarına atılan kayıtlar "BeginTransactionAsync" kilidi içine alınarak, işlem sırasında yaşanacak çökmelere karşı veri tutarlılığı sağlandı.
+Finansal Veri Koruması (Cascade Delete): Geçmişte rezervasyonu veya finansal işlemi bulunan müşterilerin veritabanından tamamen silinmesini engelleyen ve yöneticiyi uyaran kontrol mekanizması sisteme dahil edildi.
+
+3. Eşzamanlılık ve Mantık Hatalarının Çözümü (Concurrency & Business Logic)
+Çifte Rezervasyon (Double Booking) Engeli: İki kullanıcının aynı saniyede aynı odayı tutmasını önlemek için rezervasyon işlemine veritabanı düzeyinde kilit (Transaction Lock) mekanizması entegre edildi.
+Zaman Dilimi (Timezone) ve Fiyatlandırma: Rezervasyon oluşturma sürecindeki gün hesaplama ve tarih hataları giderilerek, işlemlerin sunucu saati yerine evrensel saat (UtcNow) ve tarih üzerinden hesaplanması sağlandı.
+
+4. Performans ve Kullanıcı Deneyimi İyileştirmeleri (Performance & UX)
+Bellek Sızıntısı (Memory Leak) Önlemi: Arka planda çalışan çöp hesap temizleme servisinin (UnverifiedCleanupService) tüm kullanıcıları tek seferde çekmesi engellenerek sayfalama (Chunking / Take) mantığına geçirildi ve sunucu RAM tüketimi optimize edildi.
+Kalıcı Oturum Yönetimi: Sekme kapandığında kullanıcının otomatik çıkış yapmasını (Idle drop) önlemek adına, yetkilendirme (Token) verileri geçici bellek (sessionStorage) yerine kalıcı belleğe (localStorage) taşındı.
+
+5. Kod Kalitesi ve Güvenli Derleme (Code Quality & Zero Warnings)
+Sıfır Uyarı (Zero Warnings) Politikası: Projedeki servis (UnverifiedCleanupService, EmailService) ve Repository sınıflarında bulunan tüm "Nullable Reference Types" zafiyetleri (CS8629, CS8604) güvenli kod yazım teknikleriyle onarılarak sistem sıfır uyarı/sıfır hata durumuyla derlenebilir hale getirildi.

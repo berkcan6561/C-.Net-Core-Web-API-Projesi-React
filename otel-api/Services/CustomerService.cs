@@ -53,6 +53,24 @@ namespace otel_api.Services
 
         public async Task UpdateCustomerAsync(Customer customer) => await _repo.UpdateAsync(customer);
 
-        public async Task DeleteCustomerAsync(int id) => await _repo.DeleteAsync(id);
+        public async Task<(bool Success, string Message)> DeleteCustomerAsync(int id)
+        {
+            // Müşterinin mevcut rezervasyonları var mı kontrol et
+            var hasReservations = _db.Reservations.Any(r => r.CustomerId == id);
+            if (hasReservations)
+            {
+                return (false, "Bu müşteriye ait sistemde finansal geçmiş (rezervasyon) bulunduğu için silinemez. Lütfen silmek yerine hesabı devre dışı bırakmayı tercih edin.");
+            }
+
+            // Önce varsa User hesabını sil
+            var user = _db.Users.FirstOrDefault(u => u.CustomerId == id);
+            if (user != null)
+            {
+                _db.Users.Remove(user);
+            }
+
+            await _repo.DeleteAsync(id);
+            return (true, "Müşteri başarıyla silindi.");
+        }
     }
 }

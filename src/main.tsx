@@ -6,7 +6,7 @@ import { router } from "./router";
 import { AuthProvider } from "./context/AuthContext";
 import { Toaster } from "react-hot-toast";
 import "./index.css";
-import "./i18n";
+import './i18n';
 
 import { CurrencyProvider } from "./context/CurrencyContext";
 

@@ -54,7 +54,8 @@ namespace otel_api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _customerService.DeleteCustomerAsync(id);
+            var result = await _customerService.DeleteCustomerAsync(id);
+            if (!result.Success) return BadRequest(result.Message);
             return NoContent();
         }
     }

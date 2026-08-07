@@ -73,7 +73,8 @@ namespace otel_api.Controllers
             await _roomService.DeleteRoomAsync(id);
             return NoContent();
         }
-
+        
+        [Authorize(Roles = "Admin")]
         [HttpPost("{id}/images")]
         public async Task<IActionResult> UploadImages(int id, [FromForm] IFormFileCollection files)
         {
@@ -102,6 +103,7 @@ namespace otel_api.Controllers
             return Ok(room);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}/images")]
         public async Task<IActionResult> DeleteImage(int id, [FromBody] string imageUrl)
         {

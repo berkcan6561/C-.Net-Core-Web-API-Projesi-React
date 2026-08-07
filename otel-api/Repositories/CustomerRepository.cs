@@ -16,8 +16,8 @@ namespace otel_api.Repositories
             
             // E-postası onaylanmamış kullanıcıları tespit edip filtrele
             var unverifiedCustomerIds = users
-                .Where(u => !u.IsEmailVerified && u.CustomerId.HasValue)
-                .Select(u => u.CustomerId.Value)
+                .Where(u => !u.IsEmailVerified && u.CustomerId != null)
+                .Select(u => u.CustomerId!.Value)
                 .ToList();
 
             var filteredCustomers = customers

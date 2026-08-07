@@ -12,6 +12,15 @@ import { VerifyEmail } from './pages/VerifyEmail';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 
+const requireAdmin = () => {
+  const userStr = sessionStorage.getItem('user');
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    if (user.role !== 'Admin') {
+      throw redirect({ to: '/' }); //admin olmayan kullanıcıları ana sayfaya yönlendir
+    }
+  };
+
 const rootRoute = createRootRoute({});
 
 const LoginRoute = createRoute({
@@ -65,12 +74,14 @@ const roomsRoute = createRoute({
   getParentRoute: () => authRoute,
   path: '/rooms',
   component: Rooms,
+  beforeLoad: requireAdmin, // Sadece admin kullanıcılar için erişim izni
 });
 
 const customersRoute = createRoute({
   getParentRoute: () => authRoute,
   path: '/customers',
   component: Customers,
+  beforeLoad: requireAdmin, // Sadece admin kullanıcılar için erişim izni
 });
 
 const reservationsRoute = createRoute({

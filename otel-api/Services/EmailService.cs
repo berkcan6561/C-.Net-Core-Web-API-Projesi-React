@@ -15,7 +15,7 @@ namespace otel_api.Services
             var emailSettings = _config.GetSection("EmailSettings");
             
             var email = new MimeMessage();
-            email.From.Add(new MailboxAddress(emailSettings["SenderName"], emailSettings["SenderEmail"]));
+            email.From.Add(new MailboxAddress(emailSettings["SenderName"] ?? "The Luna Suites", emailSettings["SenderEmail"]!));
             email.To.Add(new MailboxAddress("", toEmail));
             email.Subject = subject;
 
@@ -24,8 +24,8 @@ namespace otel_api.Services
             email.Body = builder.ToMessageBody();
 
             using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(emailSettings["SmtpServer"], int.Parse(emailSettings["SmtpPort"]!), SecureSocketOptions.StartTls);
-            await smtp.AuthenticateAsync(emailSettings["SenderEmail"], emailSettings["SenderPassword"]);
+            await smtp.ConnectAsync(emailSettings["SmtpServer"]!, int.Parse(emailSettings["SmtpPort"]!), SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(emailSettings["SenderEmail"]!, emailSettings["SenderPassword"]!);
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
         }

@@ -31,55 +31,66 @@ namespace otel_api.Services
             if (await _db.Users.AnyAsync(u => u.Email == request.Email))
                 return (false, "Bu e-posta zaten kayıtlı.", null);
 
-            var customer = new Customer
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            try
             {
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Email = request.Email,
-                PhoneNumber = request.PhoneNumber
-            };
-            await _db.Customers.AddAsync(customer);
-            await _db.SaveChangesAsync();
+                var customer = new Customer
+                {
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    Email = request.Email,
+                    PhoneNumber = request.PhoneNumber
+                };
+                await _db.Customers.AddAsync(customer);
+                await _db.SaveChangesAsync();
 
-            var user = new User
-            {
-                Email = request.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Role = "Customer",
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                CustomerId = customer.Id,
-                IsEmailVerified = false,
-                VerificationToken = Guid.NewGuid().ToString(),
-                VerificationTokenExpiry = DateTime.UtcNow.AddHours(24)
-            };
-            await _db.Users.AddAsync(user);
-            await _db.SaveChangesAsync();
+                var user = new User
+                {
+                    Email = request.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                    Role = "Customer",
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    CustomerId = customer.Id,
+                    IsEmailVerified = false,
+                    VerificationToken = Guid.NewGuid().ToString(),
+                    VerificationTokenExpiry = DateTime.UtcNow.AddHours(24)
+                };
+                await _db.Users.AddAsync(user);
+                await _db.SaveChangesAsync();
 
-            var verifyLink = $"http://localhost:5173/verify-email?token={user.VerificationToken}";
-            var mailBody = $@"
-                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;'>
-                    <div style='text-align: center; margin-bottom: 24px;'>
-                        <h1 style='color: #0f172a; margin: 0; font-size: 24px; font-weight: bold;'>The Luna Suites</h1>
-                        <p style='color: #64748b; margin-top: 4px; font-size: 14px;'>Hotel & Residences</p>
-                    </div>
-                    <div style='background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);'>
-                        <h2 style='color: #1e293b; margin-top: 0; font-size: 20px;'>Aramıza Hoş Geldiniz, {user.FirstName}!</h2>
-                        <p style='color: #475569; font-size: 16px; line-height: 1.5; margin-bottom: 24px;'>
-                            Luna Suites Hotel'de sizin için harika deneyimler hazırlıyoruz. Kayıt işleminizi tamamlamak ve rezervasyon yapmaya başlamak için lütfen e-posta adresinizi onaylayın.
-                        </p>
-                        <div style='text-align: center;'>
-                            <a href='{verifyLink}' style='display: inline-block; background-color: #0f172a; color: #f59e0b; text-decoration: none; padding: 14px 28px; font-weight: bold; border-radius: 6px; font-size: 16px;'>Hesabımı Onayla</a>
+                var verifyLink = $"http://localhost:5173/verify-email?token={user.VerificationToken}";
+                var mailBody = $@"
+                    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;'>
+                        <div style='text-align: center; margin-bottom: 24px;'>
+                            <h1 style='color: #0f172a; margin: 0; font-size: 24px; font-weight: bold;'>The Luna Suites</h1>
+                            <p style='color: #64748b; margin-top: 4px; font-size: 14px;'>Hotel & Residences</p>
                         </div>
-                        <p style='color: #94a3b8; font-size: 13px; margin-top: 24px; text-align: center;'>
-                            Eğer bu işlemi siz yapmadıysanız, lütfen bu e-postayı dikkate almayın.
-                        </p>
-                    </div>
-                    <div style='text-align: center; margin-top: 20px; color: #94a3b8; font-size: 12px;'>
-                        &copy; {DateTime.Now.Year} The Luna Suites Hotel. Tüm hakları saklıdır.
-                    </div>
-                </div>";
-            await _emailService.SendEmailAsync(user.Email, "The Luna Suites - E-Posta Onayı", mailBody);
+                        <div style='background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);'>
+                            <h2 style='color: #1e293b; margin-top: 0; font-size: 20px;'>Aramıza Hoş Geldiniz, {user.FirstName}!</h2>
+                            <p style='color: #475569; font-size: 16px; line-height: 1.5; margin-bottom: 24px;'>
+                                Luna Suites Hotel'de sizin için harika deneyimler hazırlıyoruz. Kayıt işleminizi tamamlamak ve rezervasyon yapmaya başlamak için lütfen e-posta adresinizi onaylayın.
+                            </p>
+                            <div style='text-align: center;'>
+                                <a href='{verifyLink}' style='display: inline-block; background-color: #0f172a; color: #f59e0b; text-decoration: none; padding: 14px 28px; font-weight: bold; border-radius: 6px; font-size: 16px;'>Hesabımı Onayla</a>
+                            </div>
+                            <p style='color: #94a3b8; font-size: 13px; margin-top: 24px; text-align: center;'>
+                                Eğer bu işlemi siz yapmadıysanız, lütfen bu e-postayı dikkate almayın.
+                            </p>
+                        </div>
+                        <div style='text-align: center; margin-top: 20px; color: #94a3b8; font-size: 12px;'>
+                            &copy; {DateTime.Now.Year} The Luna Suites Hotel. Tüm hakları saklıdır.
+                        </div>
+                    </div>";
+                await _emailService.SendEmailAsync(user.Email, "The Luna Suites - E-Posta Onayı", mailBody);
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                return (false, "Kayıt işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.", null);
+            }
 
             return (true, "Kayıt başarılı. Lütfen e-posta adresinize gelen linke tıklayarak hesabınızı onaylayın.", null);
         }

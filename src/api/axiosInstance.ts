@@ -22,6 +22,12 @@ axiosInstance.interceptors.request.use((config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response && error.response.status === 401) {
+      toast.error('Oturumunuzun süresi dolmuş olabilir. Lütfen tekrar giriş yapın.') 
+      sessionStorage.clear();
+      window.location.href = '/login';
+      };
+    } 
     if (error.response && error.response.status === 429) {
       toast.error('Çok fazla istek gönderdiniz. Lütfen biraz bekleyip tekrar deneyin.', {
          duration: 5000,
