@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import lunaLogo from '../assets/luna-logo.png';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../api/axiosInstance';
@@ -10,14 +11,16 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
+import type { Room } from '../types/room';
+import type { Reservation } from '../types/reservation';
 
 export function Dashboard() {
   const { user, isAdmin } = useAuth();
   const { formatPrice } = useCurrency();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   
-  const [rooms, setRooms] = useState<any[]>([]);
-  const [reservations, setReservations] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [accounting, setAccounting] = useState<any>(null);
 
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
@@ -29,7 +32,7 @@ export function Dashboard() {
 
   // PDF state
   const [invoiceData, setInvoiceData] = useState<any>(null);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isGeneratingPdf, _setIsGeneratingPdf] = useState(false);
 
   const handleDownloadPdf = async (res: any) => {
     setInvoiceData(res);
@@ -49,7 +52,7 @@ export function Dashboard() {
           doc.write(`
             <html>
               <head>
-                <title>Fatura_LunaSuites_${res.id}</title>
+                <title>${t('dashboard.invoice.title')}_LunaSuites_${res.id}</title>
                 <base href="${window.location.origin}">
                 ${styles}
                 <style>
@@ -161,23 +164,38 @@ export function Dashboard() {
   };
 
   const handleDeleteReservation = async (id: number) => {
-    if (window.confirm("Bu rezervasyonu iptal etmek istediğinize emin misiniz?")) {
-      try {
-        await axiosInstance.delete(`/Reservation/${id}`);
-        fetchReservations();
-        if (isAdmin) fetchAccounting();
-      } catch (err: any) {
-        alert(err.response?.data || "İptal başarısız oldu.");
-      }
-    }
+    toast((tToast) => (
+      <div>
+        <p className="mb-3 font-semibold">Bu rezervasyonu iptal etmek istediğinize emin misiniz?</p>
+        <div className="flex gap-2 justify-end">
+          <button onClick={() => toast.dismiss(tToast.id)} className="px-3 py-1.5 bg-slate-100 rounded-lg text-sm font-bold">Vazgeç</button>
+          <button 
+            onClick={async () => {
+              toast.dismiss(tToast.id);
+              try {
+                await axiosInstance.delete(`/Reservation/${id}`);
+                fetchReservations();
+                if (isAdmin) fetchAccounting();
+                toast.success("Rezervasyon başarıyla iptal edildi.");
+              } catch (err: any) {
+                toast.error(err.response?.data || "İptal başarısız oldu.");
+              }
+            }} 
+            className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-bold"
+          >
+            İptal Et
+          </button>
+        </div>
+      </div>
+    ), { duration: 5000 });
   };
 
   const today = new Date().toISOString().split('T')[0];
   const isFutureDate = (dateStr: string) => new Date(dateStr) >= new Date(today);
 
-  // 1. AYLIK CİRO HESAPLAMASI (ÇİZGİ/ALAN GRAFİĞİ İÇİN)
+  // Aylık ciro grafiği verisi (Çizgi/Alan)
   const monthlyRevenue = accounting?.details?.reduce((acc: any, curr: any) => {
-    const month = new Date(curr.checkInDate).toLocaleString('tr-TR', { month: 'short' });
+    const month = new Date(curr.checkInDate).toLocaleString(i18n.language, { month: 'short' });
     const existingMonth = acc.find((item: any) => item.name === month);
     if (existingMonth) {
       existingMonth.ciro += curr.totalPrice;
@@ -187,9 +205,9 @@ export function Dashboard() {
     return acc;
   }, []) || [];
 
-  // 2. EN ÇOK TERCİH EDİLEN ODALAR (PASTA GRAFİĞİ İÇİN)
+  // En popüler odalar grafiği verisi (Pasta)
   const roomPopularity = accounting?.details?.reduce((acc: any, curr: any) => {
-    const roomName = `Oda ${curr.room?.roomNumber || curr.roomId}`;
+    const roomName = `${t('dashboard.roomLabel', 'Oda')} ${curr.room?.roomNumber || curr.roomId}`;
     const existingRoom = acc.find((item: any) => item.name === roomName);
     if (existingRoom) {
       existingRoom.value += 1;
@@ -205,7 +223,7 @@ export function Dashboard() {
     // Ana konteynere sayfa yüklendiğinde hafifçe belirmesi için fade-in animasyonu ekledik
     <div className="space-y-10 animate-fade-in">
       
-      {/* BAŞLIK (Premium Gradient Efektli) */}
+      {/* Sayfa Başlığı */}
       <div className="animate-slide-in" style={{ animationDelay: '0.1s' }}>
         <h1 className="text-3xl font-extrabold bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 bg-clip-text text-transparent">
           {isAdmin ? t('dashboard.welcomeAdmin') : t('dashboard.welcomeCustomer', { name: user?.fullName || '' })}
@@ -215,10 +233,10 @@ export function Dashboard() {
         </p>
       </div>
 
-      {/* 1. ADMIN'E ÖZEL MUHASEBE MODÜLÜ */}
+      {/* Admin Muhasebe Modülü */}
       {isAdmin && accounting && (
         <div className="space-y-8">
-          {/* İstatistik Kartları - Hover ile havaya kalkma efektli */}
+          {/* İstatistik Kartları */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             {/* Kart 1 */}
@@ -227,7 +245,7 @@ export function Dashboard() {
                 <DollarSign size={28} className="group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div>
-                <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">Toplam Gelir</p>
+                <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">{t('dashboard.totalRevenue')}</p>
                 <h3 className="text-2xl font-bold text-slate-900 mt-1">{formatPrice(accounting.totalRevenue)}</h3>
               </div>
             </div>
@@ -238,7 +256,7 @@ export function Dashboard() {
                 <Activity size={28} className="group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div>
-                <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">Bu Ayki Gelir</p>
+                <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">{t('dashboard.monthlyRevenue')}</p>
                 <h3 className="text-2xl font-bold text-slate-900 mt-1">{formatPrice(accounting.currentMonthRevenue)}</h3>
               </div>
             </div>
@@ -249,20 +267,20 @@ export function Dashboard() {
                 <CalendarCheck size={28} className="group-hover:scale-110 transition-transform duration-300" />
               </div>
               <div>
-                <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">Rezervasyon</p>
-                <h3 className="text-2xl font-bold text-slate-900 mt-1">{accounting.totalReservationsCount} Adet</h3>
+                <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">{t('dashboard.reservations')}</p>
+                <h3 className="text-2xl font-bold text-slate-900 mt-1">{accounting.totalReservationsCount} {t('dashboard.units')}</h3>
               </div>
             </div>
 
           </div>
 
-          {/* GRAFİKLER BÖLÜMÜ */}
+          {/* Grafikler Bölümü */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-in" style={{ animationDelay: '0.45s' }}>
             
             {/* Alan (Çizgi) Grafiği: Aylık Ciro */}
             <div className="lg:col-span-2 bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
               <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <Activity className="text-blue-500 w-5 h-5" /> Aylık Gelir Trendi
+                <Activity className="text-blue-500 w-5 h-5" /> {t('dashboard.monthlyRevenueTrend')}
               </h2>
               <div className="h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -277,7 +295,7 @@ export function Dashboard() {
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
                     <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} tickFormatter={(val) => `₺${val}`} />
                     <RechartsTooltip 
-                      formatter={(value: any) => [formatPrice(value), 'Ciro']}
+                      formatter={(value: any) => [formatPrice(value), t('dashboard.revenue')]}
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     />
                     <Area type="monotone" dataKey="ciro" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorCiro)" />
@@ -289,7 +307,7 @@ export function Dashboard() {
             {/* Pasta Grafiği: Oda Popülerliği */}
             <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
               <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <BedDouble className="text-emerald-500 w-5 h-5" /> Oda Tercih Dağılımı
+                <BedDouble className="text-emerald-500 w-5 h-5" /> {t('dashboard.roomPreferenceDistribution')}
               </h2>
               <div className="h-72 w-full flex justify-center items-center">
                 <ResponsiveContainer width="100%" height="100%">
@@ -309,7 +327,7 @@ export function Dashboard() {
                       ))}
                     </Pie>
                     <RechartsTooltip 
-                      formatter={(value: any) => [`${value} Kez Kiralandı`, 'Tercih Edilme']}
+                      formatter={(value: any) => [t('dashboard.timesRented', { count: value }), t('dashboard.preference')]}
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     />
                     <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }}/>
@@ -320,48 +338,10 @@ export function Dashboard() {
             
           </div>
 
-          {/* Gelir Geçmişi Tablosu */}
-          <div className="animate-slide-in" style={{ animationDelay: '0.5s' }}>
-            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Activity className="text-blue-500 w-5 h-5" /> Son İşlemler
-            </h2>
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-              <table className="w-full text-left text-sm text-slate-600">
-                <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-4">İşlem ID</th>
-                    <th className="px-6 py-4">Oda No</th>
-                    <th className="px-6 py-4">Müşteri</th>
-                    <th className="px-6 py-4">Tarih Aralığı</th>
-                    <th className="px-6 py-4 text-emerald-600">Tutar</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {accounting.details?.map((res: any) => (
-                    // Satır Hover Efekti
-                    <tr key={res.id} className="hover:bg-blue-50/50 transition-colors group cursor-default">
-                      <td className="px-6 py-4 font-medium text-slate-500">#{res.id}</td>
-                      <td className="px-6 py-4">Oda {res.room?.roomNumber || res.roomId}</td>
-                      <td className="px-6 py-4 font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
-                        {res.customer ? `${res.customer.firstName} ${res.customer.lastName}` : `Müşteri ${res.customerId}`}
-                      </td>
-                      <td className="px-6 py-4">
-                        {new Date(res.checkInDate).toLocaleDateString('tr-TR')} - {new Date(res.checkOutDate).toLocaleDateString('tr-TR')}
-                      </td>
-                      <td className="px-6 py-4 font-bold text-emerald-600">+{formatPrice(res.totalPrice)}</td>
-                    </tr>
-                  ))}
-                  {(!accounting.details || accounting.details.length === 0) && (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">Kayıt yok.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
       )}
 
-      {/* 2. MÜŞTERİLER İÇİN ODA LİSTESİ */}
+      {/* Müşteriler İçin Oda Listesi */}
       {!isAdmin && (
         <div className="mt-8 animate-slide-in" style={{ animationDelay: '0.2s' }}>
           <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
@@ -397,7 +377,7 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* 3. REZERVASYON TABLOSU */}
+      {/* Rezervasyon Tablosu */}
       <div className="pt-6 animate-slide-in" style={{ animationDelay: isAdmin ? '0.6s' : '0.4s' }}>
         <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
           <Calendar className="text-purple-500 w-5 h-5" /> {isAdmin ? t('dashboard.allReservations') : t('dashboard.myReservations')}
@@ -465,7 +445,7 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* REZERVASYON MODALI */}
+      {/* Yeni Rezervasyon Modalı */}
       {selectedRoom && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white border border-slate-200 rounded-3xl p-8 w-full max-w-md relative shadow-2xl animate-slide-in">
@@ -476,8 +456,8 @@ export function Dashboard() {
               <X size={20} />
             </button>
             
-            <h2 className="text-2xl font-bold text-slate-900 mb-1">Rezervasyon Yap</h2>
-            <p className="text-slate-500 text-sm mb-6">Oda {selectedRoom.roomNumber} &bull; <span className="font-semibold text-blue-600">{formatPrice(selectedRoom.pricePerNight)} / gece</span></p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-1">{t('dashboard.bookNow')}</h2>
+            <p className="text-slate-500 text-sm mb-6">{t('reservationForm.room')} {selectedRoom.roomNumber} &bull; <span className="font-semibold text-blue-600">{formatPrice(selectedRoom.pricePerNight)} / {t('reservationForm.nightsFormat')}</span></p>
 
             {bookingError && (
               <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-sm mb-5 font-medium animate-slide-in">
@@ -487,21 +467,21 @@ export function Dashboard() {
 
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Giriş Tarihi</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t('reservationForm.checkIn')}</label>
                 <input type="date" min={today} value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all hover:border-slate-300" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Çıkış Tarihi</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t('reservationForm.checkOut')}</label>
                 <input type="date" min={checkIn || today} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all hover:border-slate-300" />
               </div>
               
               <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl mt-4 transition-all">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-blue-800 font-medium">Kalış Süresi:</span>
-                  <span className="text-sm font-bold text-blue-700">{totalDays} Gece</span>
+                  <span className="text-sm text-blue-800 font-medium">{t('dashboard.duration')}</span>
+                  <span className="text-sm font-bold text-blue-700">{totalDays} {t('reservationForm.nightsFormat')}</span>
                 </div>
                 <div className="flex justify-between items-center border-t border-blue-200/60 pt-3">
-                  <span className="text-sm text-blue-800 font-medium">Toplam Fiyat:</span>
+                  <span className="text-sm text-blue-800 font-medium">{t('dashboard.totalPrice')}</span>
                   <span className="text-xl font-bold text-blue-700 transition-all">{formatPrice(totalPrice)}</span>
                 </div>
               </div>
@@ -510,26 +490,26 @@ export function Dashboard() {
                 onClick={handleInitialSubmit} 
                 className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all mt-2"
               >
-                Devam Et
+                {t('dashboard.continue')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ONAY MODALI */}
+      {/* Rezervasyon Onay Modalı */}
       {showConfirmation && selectedRoom && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white border border-slate-200 rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl animate-slide-in">
-            <h2 className="text-xl font-extrabold text-slate-900 mb-4">Onaylıyor musunuz?</h2>
+            <h2 className="text-xl font-extrabold text-slate-900 mb-4">{t('dashboard.confirmTitle')}</h2>
             
             <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-6 text-left space-y-3">
-              <p className="text-sm text-slate-700"><span className="text-slate-500 w-16 inline-block">Oda:</span> <span className="font-semibold text-slate-900">Oda {selectedRoom.roomNumber}</span></p>
-              <p className="text-sm text-slate-700"><span className="text-slate-500 w-16 inline-block">Tarih:</span> <span className="font-semibold text-slate-900">{new Date(checkIn).toLocaleDateString('tr-TR')} - {new Date(checkOut).toLocaleDateString('tr-TR')}</span></p>
-              <p className="text-sm text-slate-700"><span className="text-slate-500 w-16 inline-block">Süre:</span> <span className="font-semibold text-slate-900">{totalDays} Gece</span></p>
+              <p className="text-sm text-slate-700"><span className="text-slate-500 w-16 inline-block">{t('reservationForm.room')}:</span> <span className="font-semibold text-slate-900">{t('reservationForm.room')} {selectedRoom.roomNumber}</span></p>
+              <p className="text-sm text-slate-700"><span className="text-slate-500 w-16 inline-block">{t('dashboard.date')}:</span> <span className="font-semibold text-slate-900">{new Date(checkIn).toLocaleDateString()} - {new Date(checkOut).toLocaleDateString()}</span></p>
+              <p className="text-sm text-slate-700"><span className="text-slate-500 w-16 inline-block">{t('dashboard.durationLabel')}:</span> <span className="font-semibold text-slate-900">{totalDays} {t('reservationForm.nightsFormat')}</span></p>
               <div className="border-t border-slate-200 pt-3 mt-1">
                 <p className="text-xl font-black text-emerald-600 text-center">
-                  Toplam: {formatPrice(totalPrice)}
+                  {t('dashboard.totalLabel')}: {formatPrice(totalPrice)}
                 </p>
               </div>
             </div>
@@ -540,20 +520,20 @@ export function Dashboard() {
                 disabled={isBooking}
                 className="flex-1 bg-white border border-slate-300 text-slate-700 font-bold py-3 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm disabled:opacity-50"
               >
-                Vazgeç
+                {t('reservationForm.cancel')}
               </button>
               <button 
                 onClick={handleBookRoom} 
                 disabled={isBooking}
                 className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm disabled:opacity-50 flex items-center justify-center"
               >
-                {isBooking ? 'Onaylanıyor...' : 'Onaylıyorum'}
+                {isBooking ? t('reservationForm.creating') : t('reservationForm.confirm')}
               </button>
             </div>
           </div>
         </div>
       )}
-    {/* GİZLİ PDF ŞABLONU */}
+    {/* Arka Planda Gizli PDF Şablonu */}
       <div className="fixed top-0 left-0 -z-50 opacity-0 pointer-events-none w-[800px] h-[800px] overflow-hidden">
         <div id="pdf-invoice-template-dashboard" className="w-[800px] bg-white p-12 text-slate-800 font-sans">
           
@@ -566,44 +546,44 @@ export function Dashboard() {
               </div>
             </div>
             <div className="text-right">
-              <h2 className="text-5xl font-black text-slate-100 uppercase tracking-widest mb-2">FATURA</h2>
-              <p className="text-slate-500 font-bold">Kayıt No: #{invoiceData?.id?.toString().padStart(6, '0')}</p>
-              <p className="text-slate-400 text-sm mt-1">Tarih: {new Date().toLocaleDateString('tr-TR')}</p>
+              <h2 className="text-5xl font-black text-slate-100 uppercase tracking-widest mb-2">{t('dashboard.invoice.title')}</h2>
+              <p className="text-slate-500 font-bold">{t('dashboard.invoice.recordNo')} #{invoiceData?.id?.toString().padStart(6, '0')}</p>
+              <p className="text-slate-400 text-sm mt-1">{t('dashboard.invoice.date')} {new Date().toLocaleDateString(i18n.language)}</p>
             </div>
           </div>
 
           <div className="flex justify-between mb-12 bg-slate-50 p-6 rounded-2xl">
             <div>
-              <h3 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-3">Sayın</h3>
+              <h3 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-3">{t('dashboard.invoice.dear')}</h3>
               <p className="text-xl font-bold text-slate-800">{invoiceData?.customer?.firstName || user?.fullName?.split(' ')[0]} {invoiceData?.customer?.lastName || (user?.fullName?.split(' ').slice(1).join(' '))}</p>
               <p className="text-slate-500 font-medium mt-1">{invoiceData?.customer?.email}</p>
               <p className="text-slate-500 font-medium">{invoiceData?.customer?.phoneNumber}</p>
             </div>
             <div className="text-right">
-              <h3 className="text-xs font-black text-amber-600 uppercase tracking-widest mb-3">Hizmet Sağlayıcı</h3>
+              <h3 className="text-xs font-black text-amber-600 uppercase tracking-widest mb-3">{t('dashboard.invoice.provider')}</h3>
               <p className="text-lg font-bold text-slate-800">The Luna Suites Hotel</p>
-              <p className="text-slate-500 font-medium mt-1">Kışla Mahallesi, 4481. Sokak No:9</p>
-              <p className="text-slate-500 font-medium">Yüreğir / Adana</p>
+              <p className="text-slate-500 font-medium mt-1">{t('dashboard.invoice.providerAddress1')}</p>
+              <p className="text-slate-500 font-medium">{t('dashboard.invoice.providerAddress2')}</p>
             </div>
           </div>
 
           <div className="mb-12">
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-4 border-b-2 border-slate-100 pb-3">Konaklama Detayları</h3>
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-4 border-b-2 border-slate-100 pb-3">{t('dashboard.invoice.details')}</h3>
             <table className="w-full text-left">
               <thead>
                 <tr className="text-slate-400 text-xs uppercase tracking-wider">
-                  <th className="pb-4">Hizmet / Oda</th>
-                  <th className="pb-4">Check-In</th>
-                  <th className="pb-4">Check-Out</th>
-                  <th className="pb-4 text-center">Gece</th>
-                  <th className="pb-4 text-right">Tutar</th>
+                  <th className="pb-4">{t('dashboard.invoice.serviceRoom')}</th>
+                  <th className="pb-4">{t('dashboard.invoice.checkIn')}</th>
+                  <th className="pb-4">{t('dashboard.invoice.checkOut')}</th>
+                  <th className="pb-4 text-center">{t('dashboard.invoice.nights')}</th>
+                  <th className="pb-4 text-right">{t('dashboard.invoice.amount')}</th>
                 </tr>
               </thead>
               <tbody className="text-slate-800 font-bold border-b-2 border-slate-100">
                 <tr>
-                  <td className="py-5">Premium Oda {invoiceData?.room?.roomNumber || invoiceData?.roomId} <span className="block text-xs text-slate-400 font-medium mt-1">({invoiceData?.room?.capacity || '-'} Kişilik Kapasite)</span></td>
-                  <td className="py-5">{invoiceData ? new Date(invoiceData.checkInDate).toLocaleDateString('tr-TR') : ''}</td>
-                  <td className="py-5">{invoiceData ? new Date(invoiceData.checkOutDate).toLocaleDateString('tr-TR') : ''}</td>
+                  <td className="py-5">{t('dashboard.invoice.premiumRoom')} {invoiceData?.room?.roomNumber || invoiceData?.roomId} <span className="block text-xs text-slate-400 font-medium mt-1">({t('dashboard.invoice.capacity', { capacity: invoiceData?.room?.capacity || '-' })})</span></td>
+                  <td className="py-5">{invoiceData ? new Date(invoiceData.checkInDate).toLocaleDateString(i18n.language) : ''}</td>
+                  <td className="py-5">{invoiceData ? new Date(invoiceData.checkOutDate).toLocaleDateString(i18n.language) : ''}</td>
                   <td className="py-5 text-center text-slate-500">
                     {invoiceData ? Math.max(1, Math.floor((new Date(invoiceData.checkOutDate).getTime() - new Date(invoiceData.checkInDate).getTime()) / (1000 * 60 * 60 * 24))) : 0}
                   </td>
@@ -616,19 +596,19 @@ export function Dashboard() {
           <div className="flex justify-end mb-16">
             <div className="bg-slate-900 p-8 rounded-3xl w-80 text-white shadow-xl">
               <div className="flex justify-between items-center text-slate-400 mb-5 font-medium border-b border-slate-700 pb-5 text-sm">
-                <span>Ara Toplam</span>
+                <span>{t('dashboard.invoice.subTotal')}</span>
                 <span>{invoiceData ? formatPrice(invoiceData.totalPrice) : ''}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-bold uppercase tracking-wider text-slate-300">Ödenen Tutar</span>
+                <span className="text-sm font-bold uppercase tracking-wider text-slate-300">{t('dashboard.invoice.paidAmount')}</span>
                 <span className="text-3xl font-black text-amber-400">{invoiceData ? formatPrice(invoiceData.totalPrice) : ''}</span>
               </div>
             </div>
           </div>
           
           <div className="text-center">
-            <p className="text-slate-800 font-bold text-lg mb-1">Bizi tercih ettiğiniz için teşekkür ederiz.</p>
-            <p className="text-slate-400 font-medium text-sm">Bir sonraki konaklamanızda görüşmek dileğiyle.</p>
+            <p className="text-slate-800 font-bold text-lg mb-1">{t('dashboard.invoice.thankYou')}</p>
+            <p className="text-slate-400 font-medium text-sm">{t('dashboard.invoice.seeYou')}</p>
           </div>
         </div>
       </div>

@@ -12,6 +12,10 @@ namespace otel_api.Repositories
         public async Task<List<Reservation>> GetAllAsync() => 
             await _db.Reservations.Include(r => r.Room).Include(r => r.Customer).ToListAsync();
 
+        public async Task<List<Reservation>> GetByCustomerIdAsync(int customerId) => 
+            await _db.Reservations.Include(r => r.Room).Include(r => r.Customer)
+                .Where(r => r.CustomerId == customerId).ToListAsync();
+
         public async Task AddAsync(Reservation res)
         {
             await _db.Reservations.AddAsync(res);
@@ -44,5 +48,7 @@ namespace otel_api.Repositories
                 r.CheckInDate < end && 
                 r.CheckOutDate > start &&
                 (!excludeReservationId.HasValue || r.Id != excludeReservationId.Value));
+        public async Task<bool> HasActiveReservationForRoom(int roomId) =>
+            await _db.Reservations.AnyAsync(r => r.RoomId == roomId && r.CheckOutDate >= DateTime.UtcNow);
     }
 }

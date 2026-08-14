@@ -35,7 +35,7 @@ export function RoomCarousel({ imageUrls }: RoomCarouselProps) {
       {/* 1. KÜÇÜK HALİ (Kart İçi Görünüm) */}
       <div className="relative w-full h-48 mb-4 rounded-xl overflow-hidden border border-slate-200 group/carousel">
         <img
-          src={`http://localhost:5184${imageUrls[currentIndex]}`}
+         src={`${import.meta.env.VITE_API_BASE}${imageUrls[currentIndex]}`}
           alt="Oda"
           onClick={(e) => { e.stopPropagation(); setIsZoomed(true); }} 
           className="w-full h-full object-cover transition-transform duration-500 hover:scale-105 cursor-pointer"
@@ -111,7 +111,7 @@ export function RoomCarousel({ imageUrls }: RoomCarouselProps) {
             }}
           >
             <img
-              src={`http://localhost:5184${imageUrls[currentIndex]}`}
+             src={`${import.meta.env.VITE_API_BASE}${imageUrls[currentIndex]}`}
               alt="Oda Büyük Görsel"
               className={`transition-all duration-300 ease-out ${
                 isDeepZoom 

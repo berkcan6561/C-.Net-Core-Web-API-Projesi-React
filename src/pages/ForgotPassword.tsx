@@ -22,7 +22,7 @@ export function ForgotPassword() {
     try {
       const response = await axiosInstance.post('/Auth/forgot-password', { email });
       setStatus('success');
-      setMessage(response.data.message || 'Şifre sıfırlama bağlantısı gönderildi.');
+      setMessage(t('pages.forgotPassword.linkSentMessage'));
     } catch (err: any) {
       setStatus('error');
       setMessage(err.response?.data?.message || err.response?.data || 'Bir hata oluştu. Lütfen tekrar deneyin.');
@@ -63,8 +63,8 @@ export function ForgotPassword() {
               <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 size={32} />
               </div>
-              <h2 className="text-xl font-bold text-slate-800 mb-2">Bağlantı Gönderildi</h2>
-              <p className="text-slate-600 mb-6">{message}</p>
+              <h2 className="text-xl font-bold text-slate-800 mb-2">{t('pages.forgotPassword.linkSentTitle')}</h2>
+              <p className="text-slate-600 mb-6">{t('pages.forgotPassword.linkSentMessage')}</p>
               <button
                 onClick={() => navigate({ to: '/login' })}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-md hover:-translate-y-0.5"

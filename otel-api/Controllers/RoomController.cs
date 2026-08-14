@@ -21,6 +21,7 @@ namespace otel_api.Controllers
         }
 
         // GET: api/room -> Müşteri ve Admin görebilir
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -36,6 +37,7 @@ namespace otel_api.Controllers
             return Ok(data);
         }
         
+        [AllowAnonymous]
         [HttpGet("available")]
         public async Task<IActionResult> GetAvailableRooms([FromQuery] string start, [FromQuery] string end)
         {
@@ -49,8 +51,15 @@ namespace otel_api.Controllers
         // POST: api/room -> SADECE ADMIN EKLEYEBİLİR
         [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Room room)
+        public async Task<IActionResult> Create([FromBody] otel_api.DTOs.RoomCreateDTO dto)
         {
+            var room = new Room
+            {
+                RoomNumber = dto.RoomNumber,
+                PricePerNight = dto.PricePerNight,
+                Capacity = dto.Capacity,
+                ImageUrls = new List<string>()
+            };
             await _roomService.CreateRoomAsync(room);
             return CreatedAtAction(nameof(GetById), new { id = room.Id }, room);
         }
@@ -58,10 +67,16 @@ namespace otel_api.Controllers
         // PUT: api/room/5 -> SADECE ADMIN FİYAT/BİLGİ GÜNCELLEYEBİLİR
         [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Room room)
+        public async Task<IActionResult> Update(int id, [FromBody] otel_api.DTOs.RoomCreateDTO dto)
         {
-            if (id != room.Id) return BadRequest("ID uyuşmazlığı.");
-            await _roomService.UpdateRoomAsync(room);
+            var existing = await _roomService.GetRoomByIdAsync(id);
+            if (existing == null) return NotFound("Oda bulunamadı.");
+
+            existing.RoomNumber = dto.RoomNumber;
+            existing.PricePerNight = dto.PricePerNight;
+            existing.Capacity = dto.Capacity;
+
+            await _roomService.UpdateRoomAsync(existing);
             return NoContent();
         }
 
@@ -70,7 +85,8 @@ namespace otel_api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _roomService.DeleteRoomAsync(id);
+            var result = await _roomService.DeleteRoomAsync(id);
+            if (!result.Success) return BadRequest(result.Message);
             return NoContent();
         }
         
@@ -81,23 +97,33 @@ namespace otel_api.Controllers
             var room = await _roomService.GetRoomByIdAsync(id);
             if (room == null) return NotFound();
 
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var allowedMimeTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "rooms");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
             foreach (var file in files)
             {
-                if (file.Length > 0)
-                {
-                    var sanitizedFileName = file.FileName.Replace(" ", "_");
-                    var uniqueFileName = Guid.NewGuid().ToString() + "_" + sanitizedFileName;
-                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                if (file.Length <= 0) continue;
+                if (file.Length > 5 * 1024 * 1024)
+                    return BadRequest($"Dosya '{file.FileName}' 5 MB sınırını aşıyor.");
 
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
-                    room.ImageUrls.Add($"/images/rooms/{uniqueFileName}");
+                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(ext))
+                    return BadRequest($"Dosya '{file.FileName}' geçersiz uzantıya sahip. Sadece resim dosyaları yükleyebilirsiniz.");
+
+                if (!allowedMimeTypes.Contains(file.ContentType.ToLower()))
+                    return BadRequest($"Dosya '{file.FileName}' geçersiz dosya türüne sahip.");
+
+                var uniqueFileName = Guid.NewGuid().ToString() + ext;
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
                 }
+                room.ImageUrls.Add($"/images/rooms/{uniqueFileName}");
             }
             await _roomService.UpdateRoomAsync(room);
             return Ok(room);
@@ -115,9 +141,13 @@ namespace otel_api.Controllers
                 room.ImageUrls.Remove(imageUrl);
                 await _roomService.UpdateRoomAsync(room);
 
-                // Fiziksel dosyayı da sunucudan sil (İsteğe bağlı ama önerilir)
-                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", imageUrl.TrimStart('/'));
-                if (System.IO.File.Exists(filePath))
+                // Path traversal koruması: Sadece dosya adını al, üst dizinlere erişimi engelle
+                var safeFileName = Path.GetFileName(imageUrl.TrimStart('/'));
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "rooms");
+                var filePath = Path.Combine(uploadsFolder, safeFileName);
+                
+                // Dosya yolunun uploads klasörü içinde olduğunu doğrula
+                if (filePath.StartsWith(uploadsFolder) && System.IO.File.Exists(filePath))
                     System.IO.File.Delete(filePath);
             }
             

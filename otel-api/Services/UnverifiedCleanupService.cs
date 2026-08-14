@@ -41,20 +41,31 @@ namespace otel_api.Services
                             .Select(u => u.CustomerId!.Value)
                             .ToList();
 
-                        // 2. Önce bu Customer (Müşteri) kayıtlarını veritabanından sil
-                        if (customerIds.Any())
+                        using var transaction = await db.Database.BeginTransactionAsync(stoppingToken);
+                        try
                         {
-                            var customersToDelete = await db.Customers
-                                .Where(c => customerIds.Contains(c.Id))
-                                .ToListAsync(stoppingToken);
-                            
-                            db.Customers.RemoveRange(customersToDelete);
-                        }
+                            // 2. Önce bu Customer (Müşteri) kayıtlarını veritabanından sil
+                            if (customerIds.Any())
+                            {
+                                var customersToDelete = await db.Customers
+                                    .Where(c => customerIds.Contains(c.Id))
+                                    .ToListAsync(stoppingToken);
+                                
+                                db.Customers.RemoveRange(customersToDelete);
+                            }
 
-                        // 3. Sonra Kullanıcıları (Users) sil
-                        db.Users.RemoveRange(expiredUsers);
-                        await db.SaveChangesAsync(stoppingToken);
-                        _logger.LogInformation($"{expiredUsers.Count} adet onaylanmamış çöp hesap ve ilişkili müşteri kayıtları silindi.");
+                            // 3. Sonra Kullanıcıları (Users) sil
+                            db.Users.RemoveRange(expiredUsers);
+                            await db.SaveChangesAsync(stoppingToken);
+                            await transaction.CommitAsync(stoppingToken);
+                            
+                            _logger.LogInformation($"{expiredUsers.Count} adet onaylanmamış çöp hesap ve ilişkili müşteri kayıtları silindi.");
+                        }
+                        catch (Exception)
+                        {
+                            await transaction.RollbackAsync(stoppingToken);
+                            throw; // Re-throw to be caught by the outer catch block
+                        }
                     }
                 }
                 catch (Exception ex)

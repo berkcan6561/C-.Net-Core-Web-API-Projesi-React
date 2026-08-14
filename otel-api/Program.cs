@@ -20,9 +20,10 @@ builder.Services.AddCors(Options =>
 {
     Options.AddPolicy("AllowAll", builder =>
     {
-        builder.AllowAnyOrigin()
+        builder.WithOrigins("http://localhost:5173")
                .AllowAnyMethod()
-               .AllowAnyHeader();
+               .AllowAnyHeader()
+               .AllowCredentials();
     });
 });
 builder.Services.AddControllers()
@@ -31,6 +32,10 @@ builder.Services.AddControllers()
        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-CSRF-TOKEN";
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -55,14 +60,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         Options.AddPolicy("IpBaseLoginRegister", context =>
         {
-            //kullanıcın Ip adresini alıyoruz
-            var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unkown";
+            // Kullanıcının IP adresini alıyoruz
+            var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-            return RateLimitPartition.GetFixedWindowLimiter(ip, _=>
+            // 1 dakikada en fazla 10 istek
+            return RateLimitPartition.GetFixedWindowLimiter(ip, _ =>
                 new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = 10, // 10 saniyede 10 istek (daha esnek)
-                    Window = TimeSpan.FromSeconds(10),
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                     QueueLimit = 0
                 });
@@ -84,14 +90,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             return RateLimitPartition.GetTokenBucketLimiter(key!, _ =>
                 new TokenBucketRateLimiterOptions
                 {
-                    TokenLimit = 30, // Anlık maksimum 30 istek (React'in çoklu komponent yüklemelerini rahatça kurtarır)
-                    TokensPerPeriod = 15, // Her 10 saniyede bir 15 jeton yenilenir (Hızlı gezinmeyi destekler)
+                    TokenLimit = 30, // Anlık maksimum 30 istek 
+                    TokensPerPeriod = 15, // Her 10 saniyede bir 15 jeton yenilenir
                     ReplenishmentPeriod = TimeSpan.FromSeconds(10), 
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0 // Sıraya alıp web sitesini dondurma (yavaşlama hissini önler), direkt reddet
+                    QueueLimit = 0 // Sıraya alıp web sitesini dondurma, direkt reddet
                 });
         });
-        // Rezervasyon oluşturma için JWT'deki Kullanıcı ID'sine (NameIdentifier) dayalı katı limit
+        // Rezervasyon oluşturma için JWT'deki Kullanıcı ID'sine dayalı katı limit
         Options.AddPolicy("StrictReservationLimit", context =>
         {
             var isAdmin = context.User.IsInRole("Admin");
@@ -153,6 +159,7 @@ builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<RoomService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
@@ -172,10 +179,9 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = ""
 });
 app.UseCors("AllowAll");
-
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRateLimiter();
+app.UseRateLimiter(); 
 
 using (var scope = app.Services.CreateScope())
 {
@@ -196,18 +202,8 @@ if(!db.Users.Any(u => u.Role == "Admin"))
     });
     db.SaveChanges();
 }
-else
-{
-    var existingAdmin = db.Users.FirstOrDefault(u => u.Email == "admin@otel.com");
-    if (existingAdmin != null)
-    {
-        existingAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
-        existingAdmin.IsEmailVerified = true;
-        existingAdmin.LockoutEnd = null;
-        existingAdmin.FailedLoginAttempts = 0;
-        db.SaveChanges();
-    }
-}
+// NOT: Var olan admin'e her restart'ta dokunmuyoruz.
+// Aksi halde şifre değişikliği, kilitlenme gibi tüm değişiklikler sıfırlanırdı.
 
 // Zaten oluşmuş unverified adminleri düzeltelim
 var unverifiedAdmins = db.Users.Where(u => u.Role == "Admin" && !u.IsEmailVerified).ToList();

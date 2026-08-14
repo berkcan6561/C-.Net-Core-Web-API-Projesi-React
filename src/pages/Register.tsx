@@ -27,7 +27,7 @@ export function Register() {
     e.preventDefault();
     try {
       await axiosInstance.post('/Auth/register', formData);
-      // login() fonksiyonunu çağırmıyoruz çünkü henüz e-posta onayı yok!
+      // Başarılı kayıtta anasayfaya yönlendir
       alert(t('auth.errors.registerSuccess'));
       navigate({ to: '/login' });
     } catch (err: any) {
@@ -37,7 +37,7 @@ export function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 relative p-4">
-      {/* Dil Seçici (Sağ Üst Köşe) */}
+      {/* Dil Seçici */}
       <div className="absolute top-6 right-6 z-20 flex items-center bg-white rounded-full shadow-sm border border-slate-200 p-1 animate-fade-in">
           {(['tr', 'en', 'de']).map((lng) => (
               <button

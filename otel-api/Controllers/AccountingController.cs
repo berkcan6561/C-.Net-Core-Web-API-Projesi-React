@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using otel_api.Services;
 using System.Linq;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
+using otel_api.Data;
 
 namespace otel_api.Controllers
 {
@@ -13,34 +15,49 @@ namespace otel_api.Controllers
     public class AccountingController : ControllerBase
     {
         private readonly ReservationService _reservationService;
+        private readonly ApplicationDbContext _db;
 
-        public AccountingController(ReservationService reservationService)
+        public AccountingController(ReservationService reservationService, ApplicationDbContext db)
         {
             _reservationService = reservationService;
+            _db = db;
         }
-         [HttpGet("revenue")]
-        public async Task<IActionResult> GetRevenueStats()
-        {
-            var reservations = await _reservationService.GetAllAsync();
-            var totalRevenue = reservations.Sum(r => r.TotalPrice);
-            var currentMonthRevenue = reservations.Where(r => r.CheckInDate.Month == DateTime.Now.Month && r.CheckInDate.Year == DateTime.Now.Year).Sum(r => r.TotalPrice);
-            return Ok(new
-            {
-                TotalRevenue = totalRevenue,
-                CurrentMonthRevenue = currentMonthRevenue,
-                TotalReservationsCount = reservations.Count,
-                // İŞTE BURASI: Gelirin detaylı listesi (Kim, hangi oda, ne kadar ödedi)
-                Details = reservations.OrderByDescending(r => r.CheckInDate).Select(r => new {
-                    r.Id,
-                    r.RoomId,
-                    Room = r.Room != null ? new { r.Room.RoomNumber } : null,
-                    r.CustomerId,
-                    Customer = r.Customer != null ? new { r.Customer.FirstName, r.Customer.LastName } : null,
-                    r.CheckInDate,
-                    r.CheckOutDate,
-                    r.TotalPrice
-                }).ToList()
-            });
-        }
+[HttpGet("revenue")]
+public async Task<IActionResult> GetRevenueStats()
+{
+    var now = DateTime.UtcNow;
+
+    var totalRevenue = await _db.Reservations.SumAsync(r => r.TotalPrice);
+
+    var currentMonthRevenue = await _db.Reservations
+        .Where(r => r.CheckInDate.Month == now.Month && r.CheckInDate.Year == now.Year)
+        .SumAsync(r => r.TotalPrice);
+
+    var totalCount = await _db.Reservations.CountAsync();
+
+    var details = await _db.Reservations
+        .Include(r => r.Room)
+        .Include(r => r.Customer)
+        .OrderByDescending(r => r.CheckInDate)
+        .Take(100) // Son 100 kayıt yeterli, tümünü çekme
+        .Select(r => new {
+            r.Id,
+            r.RoomId,
+            Room = r.Room != null ? new { r.Room.RoomNumber } : null,
+            r.CustomerId,
+            Customer = r.Customer != null ? new { r.Customer.FirstName, r.Customer.LastName } : null,
+            r.CheckInDate,
+            r.CheckOutDate,
+            r.TotalPrice
+        }).ToListAsync();
+
+    return Ok(new
+    {
+        TotalRevenue = totalRevenue,
+        CurrentMonthRevenue = currentMonthRevenue,
+        TotalReservationsCount = totalCount,
+        Details = details
+    });
+}
     }
 }

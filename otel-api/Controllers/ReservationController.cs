@@ -66,8 +66,7 @@ namespace otel_api.Controllers
             if (string.IsNullOrEmpty(customerIdStr) || !int.TryParse(customerIdStr, out int customerId))
                 return BadRequest("Müşteri kimliği bulunamadı.");
 
-            var all = await _service.GetAllAsync();
-            var myReservations = all.Where(r => r.CustomerId == customerId).ToList();
+            var myReservations = await _service.GetByCustomerIdAsync(customerId);
             return Ok(myReservations);
         }
 
@@ -76,7 +75,16 @@ namespace otel_api.Controllers
         {
             var res = await _service.GetByIdAsync(id);
             if (res == null) return NotFound("Rezervasyon bulunamadı.");
-            if (res.CheckInDate.Date < DateTime.Now.Date)
+
+            // Yetki kontrolü: Sadece kendi rezervasyonunu silebilir (Admin hariç)
+            if (!User.IsInRole("Admin"))
+            {
+                var userCustomerId = User.FindFirst("CustomerId")?.Value;
+                if (string.IsNullOrEmpty(userCustomerId) || res.CustomerId.ToString() != userCustomerId)
+                    return Forbid();
+            }
+
+            if (res.CheckInDate.Date < DateTime.UtcNow.Date)
                 return BadRequest("Geçmiş tarihli veya başlamış rezervasyonlar asla silinemez.");
             await _service.DeleteReservationAsync(id);
             return NoContent();

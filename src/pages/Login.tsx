@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../api/axiosInstance';
@@ -6,6 +6,7 @@ import { LogIn, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import lunaLogo from '../assets/luna-logo.png';
 import { Modal } from '../components/Modal';
 import { useTranslation } from 'react-i18next';
+import ReCaptcha from 'react-google-recaptcha';
 
 export function Login(){
     const [email, setEmail] = useState('');
@@ -16,6 +17,13 @@ export function Login(){
     const [bannedMessage, setBannedMessage] = useState('');
     const [resendStatus, setResendStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [resendMessage, setResendMessage] = useState('');
+    const [failedAttempts, setFailedAttempts] = useState(() => {
+        const saved = sessionStorage.getItem('loginFailedAttempts');
+        return saved ? parseInt(saved, 10) : 0;
+    });
+    const [showResendButton, setShowResendButton] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+    const recaptchaRef = useRef<ReCaptcha>(null);
     
     const navigate = useNavigate();   
     const { login } = useAuth();
@@ -24,7 +32,11 @@ export function Login(){
     const handleSubmit = async (e:React.FormEvent) =>{
         e.preventDefault();
         try{
-            const response = await axiosInstance.post('/Auth/login',{ email,password});
+            const response = await axiosInstance.post('/Auth/login', {
+                email,
+                password,
+                recaptchaToken: captchaToken ?? undefined
+            });
 
             login(response.data.token,{
                 userId: response.data.userId,
@@ -33,8 +45,16 @@ export function Login(){
                 role: response.data.role,
                 avatarUrl: response.data.avatarUrl
             });
+            // Clear attempts
+            sessionStorage.removeItem('loginFailedAttempts');
+            setFailedAttempts(0);
             navigate({ to: '/'});
         }catch(err: any){
+            // Reset captcha
+            if(recaptchaRef.current) recaptchaRef.current.reset();
+            setCaptchaToken(null);
+
+            // Parse error
             let errorMessage = '';
             if (typeof err.response?.data === 'string') {
                 errorMessage = err.response.data;
@@ -46,13 +66,32 @@ export function Login(){
                 errorMessage = err.response.data.detail;
             }
 
-            if (errorMessage && errorMessage.toLowerCase().includes('kilitlen')) {
-                setBannedMessage(errorMessage);
+            if (err.response?.status === 429) {
+                // Rate limit exceeded
+                setError(t('auth.errors.tooManyRequests'));
+            } else if (errorMessage.startsWith('ERR_ACCOUNT_LOCKED|')) {
+                // Account locked
+                const minutes = errorMessage.split('|')[1];
+                setBannedMessage(t('auth.errors.accountLockedParams', { minutes }));
                 setIsBannedModalOpen(true);
                 setError('');
-            } else if (err.response?.status === 429) {
-                setError(t('auth.errors.tooManyRequests'));
+            } else if (errorMessage === 'ERR_RECAPTCHA_REQUIRED') {
+                setError(t('auth.errors.recaptchaRequired'));
+            } else if (errorMessage === 'ERR_RECAPTCHA_FAILED') {
+                setError(t('auth.errors.recaptchaFailed'));
+            } else if (errorMessage === 'ERR_EMAIL_UNVERIFIED') {
+                setShowResendButton(true);
+                setError(t('auth.errors.emailUnverified'));
+            } else if (errorMessage === 'ERR_TOO_MANY_ATTEMPTS') {
+                setBannedMessage(t('auth.errors.tooManyAttemptsBan'));
+                setIsBannedModalOpen(true);
+                setError('');
             } else {
+                // Invalid credentials
+                setShowResendButton(false);
+                const newAttempts = failedAttempts + 1;
+                setFailedAttempts(newAttempts);
+                sessionStorage.setItem('loginFailedAttempts', newAttempts.toString());
                 setError(t('auth.errors.invalidLogin'));
             }
         }
@@ -62,7 +101,7 @@ export function Login(){
         if (!email) return;
         setResendStatus('loading');
         try {
-            const response = await axiosInstance.post('/Auth/resend-verification-email', { email });
+            await axiosInstance.post('/Auth/resend-verification-email', { email });
             setResendStatus('success');
             setResendMessage(t('auth.errors.resendSuccess'));
         } catch (err: any) {
@@ -73,7 +112,7 @@ export function Login(){
 
     return(
         <div className="min-h-screen flex items-center justify-center bg-slate-50 relative p-4">
-            {/* Dil Seçici (Sağ Üst Köşe) */}
+            {/* Language selector */}
             <div className="absolute top-6 right-6 z-20 flex items-center bg-white rounded-full shadow-sm border border-slate-200 p-1 animate-fade-in">
                 {(['tr', 'en', 'de']).map((lng) => (
                     <button
@@ -105,7 +144,7 @@ export function Login(){
                 {error &&(
                 <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-sm mb-5 text-center font-medium flex flex-col items-center gap-2">
                     <span>{error}</span>
-                    {error.includes('e-posta adresinizi onaylayın') && (
+                    {showResendButton && (
                         <div className="mt-2 flex flex-col items-center w-full">
                             <button 
                                 onClick={handleResendEmail}
@@ -160,6 +199,16 @@ export function Login(){
                         </button>
                     </div>
                    </div>
+                   {failedAttempts >= 3 && (
+                       <div className="flex justify-center mt-2">
+                           <ReCaptcha
+                               ref={recaptchaRef}
+                               sitekey="6LfsfIUtAAAAAB0WRWqqrl_FyW8ZHu-q7zUL0zyC"
+                               onChange={(token) => setCaptchaToken(token)}
+                               hl={i18n.language}
+                           />
+                       </div>
+                   )}
                   <button
                   type="submit"
                   className="w-full flex items-center justify-center gap-2 bg-slate-900 text-amber-500 font-bold py-3 px-4 rounded-xl hover:bg-slate-800 transition-all shadow-md hover:shadow-lg mt-4 text-sm"
@@ -203,4 +252,6 @@ export function Login(){
         </div>
    );         
 }
+
+
     

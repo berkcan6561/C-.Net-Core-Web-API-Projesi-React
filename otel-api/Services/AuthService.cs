@@ -8,6 +8,9 @@ using otel_api.Data;
 using otel_api.DTOs;
 using otel_api.Models;
 using Microsoft.Extensions.Caching.Memory;
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Net.Http;
 
 namespace otel_api.Services
 {
@@ -17,13 +20,15 @@ namespace otel_api.Services
         private readonly IConfiguration _config;
         private readonly EmailService _emailService;
         private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public AuthService(ApplicationDbContext db, IConfiguration config, EmailService emailService, Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
+        public AuthService(ApplicationDbContext db, IConfiguration config, EmailService emailService, Microsoft.Extensions.Caching.Memory.IMemoryCache cache, IHttpClientFactory httpClientFactory)
         {
             _db = db;
             _config = config;
             _emailService = emailService;
             _cache = cache;
+            _httpClientFactory = httpClientFactory;
         }
 
         public async Task<(bool Success, string Message, AuthResponse? Data)> Register(RegisterRequest request)
@@ -59,7 +64,8 @@ namespace otel_api.Services
                 await _db.Users.AddAsync(user);
                 await _db.SaveChangesAsync();
 
-                var verifyLink = $"http://localhost:5173/verify-email?token={user.VerificationToken}";
+                var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:5173";
+                var verifyLink = $"{frontendUrl.TrimEnd('/')}/verify-email?token={user.VerificationToken}";
                 var mailBody = $@"
                     <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;'>
                         <div style='text-align: center; margin-bottom: 24px;'>
@@ -95,57 +101,87 @@ namespace otel_api.Services
             return (true, "Kayıt başarılı. Lütfen e-posta adresinize gelen linke tıklayarak hesabınızı onaylayın.", null);
         }
 
-        public async Task<(bool Success, string Message, AuthResponse? Data)> Login(LoginRequest request)
+        public async Task<(bool Success, string Message, AuthResponse? Data, string? RefreshToken)> Login(LoginRequest request)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null)
-                return (false, "E-posta veya şifre hatalı.", null);
+                return (false, "ERR_INVALID_CREDENTIALS", null, null);
 
-            // 1. Kilitlenme (Lockout) Kontrolü
-            if (user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.UtcNow)
+            // 2. 3 veya daha fazla başarısız deneme varsa captcha zorla (Şifre doğru olsa bile önce bot olmadığını kanıtlamalı)
+            if (user.FailedLoginAttempts >= 3)
             {
-                var remainingTime = user.LockoutEnd.Value - DateTime.UtcNow;
-                return (false, $"Hesabınız kilitlendi. Lütfen {Math.Ceiling(remainingTime.TotalMinutes)} dakika sonra tekrar deneyin.", null);
-            }
-
-            // 2. Şifre Doğrulama
-            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            {
-                // Yanlış şifre girildiğinde sayacı artır
-                user.FailedLoginAttempts += 1;
-                
-                // 5. hatada hesabı 1 saat kilitle
-                if (user.FailedLoginAttempts >= 5)
+                if (string.IsNullOrEmpty(request.RecaptchaToken))
                 {
-                    user.LockoutEnd = DateTime.UtcNow.AddHours(1); // 1 saat kilit
-                    await _db.SaveChangesAsync();
-                    return (false, "Çok fazla hatalı giriş yaptınız. Hesabınız 1 saat süreyle güvenlik amacıyla kilitlendi.", null);
+                    return (false, "ERR_RECAPTCHA_REQUIRED", null, null);
                 }
 
-                await _db.SaveChangesAsync(); // Sayacı veritabanına kaydet
-                return (false, "E-posta veya şifre hatalı.", null);
+                var isRecaptchaValid = await VerifyRecaptcha(request.RecaptchaToken);
+                if (!isRecaptchaValid)
+                {
+                    return (false, "ERR_RECAPTCHA_FAILED", null, null);
+                }
+            }
+
+            // 3. Şifre Doğrulama
+            bool isPasswordCorrect = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+
+            if (!isPasswordCorrect)
+            {
+                user.FailedLoginAttempts += 1;
+                await _db.SaveChangesAsync();
+                return (false, "ERR_INVALID_CREDENTIALS", null, null);
             }
 
             if (!user.IsEmailVerified)
             {
-                return (false, "Lütfen giriş yapmadan önce e-posta adresinizi onaylayın.", null);
+                return (false, "ERR_EMAIL_UNVERIFIED", null, null);
             }
 
             // 3. Başarılı girişte sayacı ve kilitlenmeyi sıfırla
             user.FailedLoginAttempts = 0;
-            user.LockoutEnd = null;
+
+            // Refrsh token oluşturma ve kaydetme
+            var refreshToken = GenerateRefreshToken();
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7); // Refresh token 7 gün geçerli
             await _db.SaveChangesAsync();
 
             var token = GenerateToken(user);
-            return (true, "Giriş başarılı.", new AuthResponse
+            var responseData = new AuthResponse
             {
                 Token = token,
                 Role = user.Role,
                 FullName = $"{user.FirstName} {user.LastName}",
                 UserId = user.Id,
                 CustomerId = user.CustomerId,
-                AvatarUrl = user.AvatarUrl
-            });
+                AvatarUrl = user.AvatarUrl,
+            };
+            return (true, "Giriş başarılı.", responseData, refreshToken);
+        }
+        public async Task<(bool Success, string Message, AuthResponse? Data, string? NewRefreshToken)> RefreshToken(string refreshToken)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            if (user == null || user.RefreshTokenExpiry <= DateTime.UtcNow)
+            return (false, "Geçersiz veya süresi dolmuş oturum. Lütfen tekrar giriş yapın.", null, null);
+
+            // Yeni token ve refresh token oluştur
+            var newJwtToken = GenerateToken(user);
+            var newRefreshToken = GenerateRefreshToken();
+
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7); // Refresh token 7 gün geçerli
+            await _db.SaveChangesAsync();
+
+            var responseData = new AuthResponse
+            {
+                Token = newJwtToken,
+                Role = user.Role,
+                FullName = $"{user.FirstName} {user.LastName}",
+                UserId = user.Id,
+                CustomerId = user.CustomerId,
+                AvatarUrl = user.AvatarUrl,
+            };
+            return (true, "Token başarıyla yenilendi.", responseData, newRefreshToken);
         }
 
         public async Task<(bool Success, string Message)> VerifyEmail(string token)
@@ -182,7 +218,8 @@ namespace otel_api.Services
             await _db.SaveChangesAsync();
 
             // Yeni maili gönder
-            var verifyLink = $"http://localhost:5173/verify-email?token={user.VerificationToken}";
+           var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:5173";
+var verifyLink = $"{frontendUrl.TrimEnd('/')}/verify-email?token={user.VerificationToken}";
             var mailBody = $@"
                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;'>
                     <div style='text-align: center; margin-bottom: 24px;'>
@@ -222,7 +259,8 @@ namespace otel_api.Services
             user.ResetPasswordTokenExpiry = DateTime.UtcNow.AddHours(1);
             await _db.SaveChangesAsync();
 
-            var resetLink = $"http://localhost:5173/reset-password?token={user.ResetPasswordToken}";
+            var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:5173";
+            var resetLink = $"{frontendUrl.TrimEnd('/')}/reset-password?token={user.ResetPasswordToken}";
             var mailBody = $@"
                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;'>
                     <div style='text-align: center; margin-bottom: 24px;'>
@@ -292,6 +330,35 @@ namespace otel_api.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+        private string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[32];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+        }
+        private async Task<bool> VerifyRecaptcha(string recaptchaToken)
+        {
+            var secretKey = _config["RecaptchaSettings:SecretKey"];
+            if (string.IsNullOrEmpty(secretKey))
+            {
+                // Config'de secret key yoksa captcha’yı geçerli say (dev ortamı için)
+                return true;
+            }
+
+            var client = _httpClientFactory.CreateClient();
+            var response = await client.PostAsync(
+                $"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={recaptchaToken}",
+                null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonResult = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(jsonResult);
+                return doc.RootElement.GetProperty("success").GetBoolean();
+            }
+            return false;
         }
     }
 }

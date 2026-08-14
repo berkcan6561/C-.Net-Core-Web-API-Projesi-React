@@ -9,28 +9,28 @@ namespace otel_api.Services
         private readonly RoomRepository _roomRepo;
         private readonly CustomerRepository _customerRepo;
         private readonly EmailService _emailService;
-        private readonly otel_api.Data.ApplicationDbContext _db;
 
-        public ReservationService(ReservationRepository resRepo, RoomRepository roomRepo, CustomerRepository customerRepo, EmailService emailService, otel_api.Data.ApplicationDbContext db)
+        public ReservationService(ReservationRepository resRepo, RoomRepository roomRepo, CustomerRepository customerRepo, EmailService emailService)
         {
             _resRepo = resRepo;
             _roomRepo = roomRepo;
             _customerRepo = customerRepo;
             _emailService = emailService;
-            _db = db;
         }
 
         public async Task<List<Reservation>> GetAllAsync() => await _resRepo.GetAllAsync();
+        
+        public async Task<List<Reservation>> GetByCustomerIdAsync(int customerId) => await _resRepo.GetByCustomerIdAsync(customerId);
 
         public async Task<Reservation?> GetByIdAsync(int id) => await _resRepo.GetByIdAsync(id);
 
         public async Task<(bool Success, string Message, Reservation? Data)> CreateReservation(Reservation res)
         {
-            if (res.CheckInDate.Date < DateTime.Now.Date)
-                return (false, "Geçmiş bir tarihe rezervasyon yapılamaz.", null);
-                
             if (res == null)
                 return (false, "Rezervasyon verisi eksik.", null);
+
+            if (res.CheckInDate.Date < DateTime.UtcNow.Date)
+                return (false, "Geçmiş bir tarihe rezervasyon yapılamaz.", null);
 
             if (res.CustomerId <= 0 || res.RoomId <= 0)
                 return (false, "Müşteri ve oda bilgisi zorunludur.", null);
@@ -39,35 +39,24 @@ namespace otel_api.Services
             if (res.CheckOutDate <= res.CheckInDate)
                 return (false, "Çıkış tarihi giriş tarihinden sonra olmalı.", null);
 
-            using var transaction = await _db.Database.BeginTransactionAsync();
-            try
-            {
-                // 1. Müsaitlik kontrolü (Kilitli okuma)
-                if (await _resRepo.IsRoomBooked(res.RoomId, res.CheckInDate, res.CheckOutDate))
-                    return (false, "Seçilen tarihlerde oda dolu.", null);
+            // 1. Müsaitlik kontrolü
+            if (await _resRepo.IsRoomBooked(res.RoomId, res.CheckInDate, res.CheckOutDate))
+                return (false, "Seçilen tarihlerde oda dolu.", null);
 
-                // 2. Oda bilgisi
-                var room = await _roomRepo.GetByIdAsync(res.RoomId);
-                if (room == null) return (false, "Oda bulunamadı.", null);
+            // 2. Oda bilgisi
+            var room = await _roomRepo.GetByIdAsync(res.RoomId);
+            if (room == null) return (false, "Oda bulunamadı.", null);
 
-                // 3. Fiyat hesaplama
-                int days = (res.CheckOutDate.Date - res.CheckInDate.Date).Days;
-                res.TotalPrice = days * room.PricePerNight;
+            // 3. Fiyat hesaplama
+            int days = (res.CheckOutDate.Date - res.CheckInDate.Date).Days;
+            res.TotalPrice = days * room.PricePerNight;
 
-                // 4. Kayıt
-                await _resRepo.AddAsync(res);
-                await transaction.CommitAsync();
-            }
-            catch (Exception)
-            {
-                await transaction.RollbackAsync();
-                return (false, "Rezervasyon sırasında sistemsel bir hata oluştu veya oda başka biri tarafından rezerve edildi.", null);
-            }
+            // 4. Kayıt
+            await _resRepo.AddAsync(res);
 
             // 5. E-posta Gönderimi
             var customer = await _customerRepo.GetByIdAsync(res.CustomerId);
-            var roomDetails = await _roomRepo.GetByIdAsync(res.RoomId);
-            if (customer != null && roomDetails != null && !string.IsNullOrEmpty(customer.Email))
+            if (customer != null && !string.IsNullOrEmpty(customer.Email))
             {
                 var mailBody = $@"
                     <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;'>
@@ -79,10 +68,10 @@ namespace otel_api.Services
                             <h2 style='color: #1e293b; margin-top: 0; font-size: 20px;'>Rezervasyonunuz Onaylandı! 🎉</h2>
                             <p style='color: #475569; font-size: 16px; line-height: 1.5; margin-bottom: 24px;'>
                                 Sayın {customer.FirstName} {customer.LastName},<br><br>
-                                Bizi tercih ettiğiniz için teşekkür ederiz. {roomDetails.RoomNumber} numaralı odamız için rezervasyon işleminiz başarıyla tamamlanmıştır.
+                                Bizi tercih ettiğiniz için teşekkür ederiz. {room.RoomNumber} numaralı odamız için rezervasyon işleminiz başarıyla tamamlanmıştır.
                             </p>
                             <div style='background-color: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 24px;'>
-                                <p style='margin: 6px 0; color: #334155;'><strong>Oda Numarası:</strong> {roomDetails.RoomNumber}</p>
+                                <p style='margin: 6px 0; color: #334155;'><strong>Oda Numarası:</strong> {room.RoomNumber}</p>
                                 <p style='margin: 6px 0; color: #334155;'><strong>Giriş Tarihi:</strong> {res.CheckInDate:dd.MM.yyyy}</p>
                                 <p style='margin: 6px 0; color: #334155;'><strong>Çıkış Tarihi:</strong> {res.CheckOutDate:dd.MM.yyyy}</p>
                                 <p style='margin: 6px 0; color: #334155; font-size: 18px;'><strong>Toplam Ücret:</strong> {res.TotalPrice} ₺</p>
@@ -115,7 +104,7 @@ namespace otel_api.Services
             var room = await _roomRepo.GetByIdAsync(res.RoomId);
             if (room == null) return (false, "Oda bulunamadı.");
 
-            int days = (res.CheckOutDate - res.CheckInDate).Days;
+            int days = (res.CheckOutDate.Date - res.CheckInDate.Date).Days;
             res.TotalPrice = days * room.PricePerNight;
 
             await _resRepo.UpdateAsync(res);

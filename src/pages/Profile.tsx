@@ -9,14 +9,14 @@ export function Profile() {
   const { user, updateUser } = useAuth();
   const { t } = useTranslation();
   
-  // State'ler
-  const [avatar, setAvatar] = useState(user?.avatarUrl ? `http://localhost:5184${user.avatarUrl}` : 'https://ui-avatars.com/api/?name=' + user?.fullName);
+  // Form state'leri
+  const [avatar, setAvatar] = useState(user?.avatarUrl ? `${import.meta.env.VITE_API_BASE}${user.avatarUrl}` : 'https://ui-avatars.com/api/?name=' + user?.fullName);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [message, setMessage] = useState('');
+  const [message] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Backend'den dönen Türkçe hataları yakalayıp mevcut dile çeviren yardımcı fonksiyon
+  // Validasyon hatalarıle çeviren yardımcı fonksiyon
   const getErrorMessage = (errData: any, defaultKey: string) => {
     if (typeof errData === 'string') {
       if (errData.includes('Dosya boyutu')) return t('profile.errors.fileTooLarge');
@@ -28,7 +28,7 @@ export function Profile() {
     return t(defaultKey);
   };
 
-  // Avatar Yükleme İşlemi
+  // Profil fotoğrafı güncelleme
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -41,7 +41,7 @@ export function Profile() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       const newAvatarUrl = res.data.avatarUrl;
-      setAvatar('http://localhost:5184' + newAvatarUrl); // API portuna göre ayarla
+      setAvatar(`${import.meta.env.VITE_API_BASE}${newAvatarUrl}`); // API portuna göre ayarla
       updateUser({ avatarUrl: newAvatarUrl }); // <--- Global state'i günceller
       toast.success(t('profile.photoSuccess'));
     } catch (err: any) {
@@ -51,7 +51,7 @@ export function Profile() {
     }
   };
 
-  // Şifre Değiştirme İşlemi
+  // Şifre güncelleme
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -80,7 +80,7 @@ export function Profile() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* AVATAR KISMI */}
+        {/* Profil Fotoğrafı Bölümü */}
         <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
           <div className="relative group cursor-pointer mb-4" onClick={() => fileInputRef.current?.click()}>
             <img src={avatar} alt="Avatar" className="w-32 h-32 rounded-full object-cover border-4 border-slate-50 group-hover:border-blue-100 transition-colors shadow-md" />
@@ -96,7 +96,7 @@ export function Profile() {
           </button>
         </div>
 
-        {/* ŞİFRE DEĞİŞTİRME KISMI */}
+        {/* Şifre Değiştirme Bölümü */}
         <div className="md:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
           <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
             <Lock className="text-blue-500 w-5 h-5" /> {t('profile.securityAndPassword')}

@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Avatar yüklemelerinde dotnet watch'un çökmesini engeller -->
+    <!-- Avatar yüklemelerinde dotnet watch'un çökmesini engellemek için -->
     <Content Update="wwwroot\**\*" Watch="false" />
     <None Update="wwwroot\**\*" Watch="false" />
   </ItemGroup>

@@ -6,6 +6,7 @@ import type { Customer } from '../types/customer';
 import type { Reservation, ReservationRequest } from '../types/reservation';
 import { BedDouble, Users, Moon, User, CalendarDays } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 
 interface BookModeProps {
   mode: 'book';
@@ -38,6 +39,7 @@ type ReservationFormProps = BookModeProps | EditModeProps;
 export function ReservationForm(props: ReservationFormProps) {
   const { mode, customers, onSubmit, onCancel, isSubmitting } = props;
   const { formatPrice } = useCurrency();
+  const { t } = useTranslation();
 
   // Edit mode: need rooms list for dropdown
   const { data: allRooms } = useQuery({
@@ -64,7 +66,7 @@ export function ReservationForm(props: ReservationFormProps) {
       setEditCheckIn(props.initialData.checkInDate.substring(0, 10));
       setEditCheckOut(props.initialData.checkOutDate.substring(0, 10));
     }
-  }, [mode, customers, props]);
+  }, [mode, customers, mode === 'edit' ? props.initialData : undefined]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,9 +103,9 @@ export function ReservationForm(props: ReservationFormProps) {
                 <BedDouble size={20} />
               </div>
               <div>
-                <div className="text-slate-900 font-bold text-lg">Oda {room.roomNumber}</div>
+                <div className="text-slate-900 font-bold text-lg">{t('reservationForm.room')} {room.roomNumber}</div>
                 <div className="flex items-center gap-1.5 text-slate-500 text-xs font-semibold">
-                  <Users size={12} /> {room.capacity} Kişilik
+                  <Users size={12} /> {room.capacity} {t('reservationForm.capacity')}
                 </div>
               </div>
             </div>
@@ -112,20 +114,20 @@ export function ReservationForm(props: ReservationFormProps) {
           <div className="space-y-2 text-sm font-medium">
             <div className="flex justify-between">
               <span className="text-slate-500 flex items-center gap-1.5">
-                <CalendarDays size={13} /> Giriş
+                <CalendarDays size={13} /> {t('reservationForm.checkIn')}
               </span>
-              <span className="text-slate-900">{new Date(checkInDate).toLocaleDateString('tr-TR')}</span>
+              <span className="text-slate-900">{new Date(checkInDate).toLocaleDateString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500 flex items-center gap-1.5">
-                <CalendarDays size={13} /> Çıkış
+                <CalendarDays size={13} /> {t('reservationForm.checkOut')}
               </span>
-              <span className="text-slate-900">{new Date(checkOutDate).toLocaleDateString('tr-TR')}</span>
+              <span className="text-slate-900">{new Date(checkOutDate).toLocaleDateString()}</span>
             </div>
             <div className="h-px bg-slate-200 my-2" />
             <div className="flex justify-between items-center mt-3 pt-3 border-t border-blue-200">
               <span className="text-slate-600 font-semibold flex items-center gap-2 text-sm">
-                <Moon size={13} className="text-amber-500" /> {nights} Gece × {formatPrice(room.pricePerNight)}
+                <Moon size={13} className="text-amber-500" /> {nights} {t('reservationForm.nightsFormat')} × {formatPrice(room.pricePerNight)}
               </span>
               <span className="text-blue-600 font-black text-lg">{formatPrice(totalPrice)}</span>
             </div>
@@ -136,7 +138,7 @@ export function ReservationForm(props: ReservationFormProps) {
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
             <User size={14} className="text-slate-500" />
-            Müşteri Seçin
+            {t('reservationForm.selectCustomer')}
           </label>
           <select
             required
@@ -145,7 +147,7 @@ export function ReservationForm(props: ReservationFormProps) {
             className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 focus:border-blue-400 focus:ring-2 focus:ring-slate-100 outline-none transition-colors duration-200 text-sm font-medium"
           >
             {customers.length === 0 && (
-              <option value={0}>Müşteri bulunamadı</option>
+              <option value={0}>{t('reservationForm.customerNotFound')}</option>
             )}
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
@@ -162,14 +164,14 @@ export function ReservationForm(props: ReservationFormProps) {
             onClick={onCancel}
             className="flex-1 bg-slate-100 text-slate-600 font-bold py-3 px-4 rounded-xl hover:bg-slate-200 transition-all text-sm"
           >
-            İptal
+            {t('reservationForm.cancel')}
           </button>
           <button
             type="submit"
             disabled={isSubmitting || customers.length === 0}
             className="flex-1 bg-slate-900 text-amber-500 font-bold py-3 px-4 rounded-xl hover:bg-slate-800 transition-all shadow-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Oluşturuluyor...' : 'Onayla'}
+            {isSubmitting ? t('reservationForm.creating') : t('reservationForm.confirm')}
           </button>
         </div>
       </form>
@@ -184,7 +186,7 @@ export function ReservationForm(props: ReservationFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">Müşteri</label>
+        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">{t('reservationForm.customer')}</label>
         <select
           required
           value={customerId}
@@ -199,7 +201,7 @@ export function ReservationForm(props: ReservationFormProps) {
         </select>
       </div>
       <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">Oda</label>
+        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">{t('reservationForm.room')}</label>
         <select
           required
           value={roomId}
@@ -208,13 +210,13 @@ export function ReservationForm(props: ReservationFormProps) {
         >
           {(allRooms || []).map((r) => (
             <option key={r.id} value={r.id}>
-              Oda {r.roomNumber} ({r.capacity} Kişilik)
+              {t('reservationForm.room')} {r.roomNumber} ({r.capacity} {t('reservationForm.capacity')})
             </option>
           ))}
         </select>
       </div>
       <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">Giriş Tarihi</label>
+        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">{t('reservationForm.checkIn')}</label>
         <input
           type="date"
           required
@@ -224,7 +226,7 @@ export function ReservationForm(props: ReservationFormProps) {
         />
       </div>
       <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">Çıkış Tarihi</label>
+        <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">{t('reservationForm.checkOut')}</label>
         <input
           type="date"
           required
@@ -237,7 +239,7 @@ export function ReservationForm(props: ReservationFormProps) {
       {editNights > 0 && (
         <div className="text-sm text-slate-500 font-bold flex items-center gap-2">
           <Moon size={14} className="text-amber-500" />
-          {editNights} gece
+          {editNights} {t('reservationForm.nightsFormat')}
         </div>
       )}
 
@@ -247,14 +249,14 @@ export function ReservationForm(props: ReservationFormProps) {
           onClick={onCancel}
           className="flex-1 bg-slate-100 text-slate-600 font-bold py-3 px-4 rounded-xl hover:bg-slate-200 transition-all text-sm"
         >
-          İptal
+          {t('reservationForm.cancel')}
         </button>
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="flex-1 bg-slate-900 text-amber-500 font-bold py-3 px-4 rounded-xl hover:bg-slate-800 transition-all shadow-md text-sm disabled:opacity-50"
+          disabled={isSubmitting || editNights <= 0}
+          className="flex-1 bg-slate-900 text-amber-500 font-bold py-3 px-4 rounded-xl hover:bg-slate-800 transition-all shadow-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+          {isSubmitting ? t('reservationForm.updating') : t('reservationForm.update')}
         </button>
       </div>
     </form>

@@ -10,20 +10,19 @@ export function Layout() {
   const currentPath = routerState.location.pathname;
   const { user, logout, isAdmin } = useAuth(); 
   const { currency, setCurrency } = useCurrency();
-  const { t, i18n } = useTranslation;
+  const { t, i18n } = useTranslation();
 
   
   const navItems = [
-    { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={20} />, show: true },
-    { to: '/rooms', label: 'Odalar', icon: <BedDouble size={20} />, show: isAdmin },
-    { to: '/customers', label: 'Müşteriler', icon: <Users size={20} />, show: isAdmin },
-    { to: '/reservations', label: 'Rezervasyonlar', icon: <CalendarCheck size={20} />, show: isAdmin },
-    { to: '/profile', label: 'Profilim', icon: <UserIcon size={20} />, show: true },
+    { to: '/', label: t('navbar.dashboard'), icon: <LayoutDashboard size={20} />, show: true },
+    { to: '/rooms', label: t('navbar.rooms'), icon: <BedDouble size={20} />, show: isAdmin },
+    { to: '/customers', label: t('navbar.customers'), icon: <Users size={20} />, show: isAdmin },
+    { to: '/reservations', label: t('navbar.reservations'), icon: <CalendarCheck size={20} />, show: isAdmin },
+    { to: '/profile', label: t('navbar.profile'), icon: <UserIcon size={20} />, show: true },
   ];
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/login'; 
   };
 
   return (
@@ -44,7 +43,7 @@ export function Layout() {
                 The Luna Suites
               </h1>
               <p className="text-[10px] text-slate-500 font-semibold tracking-widest uppercase mt-0.5">
-                {isAdmin ? 'Yönetim Paneli' : 'Müşteri Paneli'}
+                {isAdmin ? t('layout.adminPanel') : t('layout.customerPanel')}
               </p>
             </div>
           </div>
@@ -53,7 +52,7 @@ export function Layout() {
         {/* Menü Linkleri */}
         <nav className="flex-1 px-4 space-y-1.5">
           <div className="text-xs font-bold text-slate-400 tracking-wider mb-4 px-4 uppercase">
-            Ana Menü
+            {t('layout.mainMenu')}
           </div>
           
           {navItems.filter(item => item.show).map((item) => {
@@ -87,21 +86,21 @@ export function Layout() {
              {/* Profil Avatarı */}
             <div className="w-9 h-9 rounded-full flex-shrink-0 bg-slate-200 flex items-center justify-center text-slate-700 font-bold text-sm overflow-hidden">
               {user?.avatarUrl ? (
-                <img src={`http://localhost:5184${user.avatarUrl}`} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={`${import.meta.env.VITE_API_BASE}${user.avatarUrl}`} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 user?.fullName?.charAt(0) || 'U'
               )}
             </div>
             <div className="overflow-hidden">
-              <h4 className="text-sm font-semibold text-slate-900 truncate">{user?.fullName || 'Misafir'}</h4>
-              <p className="text-xs text-slate-500 truncate">{user?.role || 'Kullanıcı'}</p>
+              <h4 className="text-sm font-semibold text-slate-900 truncate">{user?.fullName || t('layout.guest')}</h4>
+              <p className="text-xs text-slate-500 truncate">{user?.role || 'User'}</p>
             </div>
           </div>
           
           <button 
             onClick={handleLogout}
             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="Çıkış Yap"
+            title={t('layout.logout')}
           >
             <LogOut size={18} />
           </button>
@@ -110,21 +109,42 @@ export function Layout() {
 
       {/* Ana İçerik Alanı */}
       <main className="flex-1 overflow-y-auto relative">
-        {/* Üst Bar: Para Birimi Seçici */}
-        <div className="absolute top-6 right-8 lg:right-12 z-20 flex items-center bg-white rounded-full shadow-sm border border-slate-200 p-1">
-          {(['TRY', 'USD', 'EUR'] as const).map((curr) => (
-            <button
-              key={curr}
-              onClick={() => setCurrency(curr)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all ${
-                currency === curr 
-                  ? 'bg-blue-600 text-white shadow-md' 
-                  : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              {curr === 'TRY' ? '₺' : curr === 'USD' ? '$' : '€'}
-            </button>
-          ))}
+        {/* Üst Bar: Dil ve Para Birimi Seçici */}
+        <div className="absolute top-6 right-8 lg:right-12 z-20 flex items-center gap-4">
+          
+          {/* Dil Seçici */}
+          <div className="flex items-center bg-white rounded-full shadow-sm border border-slate-200 p-1">
+            {(['tr', 'en', 'de'] as const).map((lang) => (
+              <button
+                key={lang}
+                onClick={() => i18n.changeLanguage(lang)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all uppercase ${
+                  i18n.language?.startsWith(lang)
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                {lang}
+              </button>
+            ))}
+          </div>
+
+          {/* Para Birimi Seçici */}
+          <div className="flex items-center bg-white rounded-full shadow-sm border border-slate-200 p-1">
+            {(['TRY', 'USD', 'EUR'] as const).map((curr) => (
+              <button
+                key={curr}
+                onClick={() => setCurrency(curr)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all ${
+                  currency === curr 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                {curr === 'TRY' ? '₺' : curr === 'USD' ? '$' : '€'}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Sayfaların (Dashboard, Rooms vs.) render edildiği yer */}

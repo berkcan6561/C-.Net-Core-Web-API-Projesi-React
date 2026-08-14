@@ -44,10 +44,17 @@ namespace otel_api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Customer customer)
+        public async Task<IActionResult> Update(int id, [FromBody] otel_api.DTOs.CustomerUpdateDTO dto)
         {
-            if (id != customer.Id) return BadRequest("ID uyuşmazlığı.");
-            await _customerService.UpdateCustomerAsync(customer);
+            var existing = await _customerService.GetByIdAsync(id);
+            if (existing == null) return NotFound("Müşteri bulunamadı.");
+
+            existing.FirstName = dto.FirstName;
+            existing.LastName = dto.LastName;
+            existing.Email = dto.Email;
+            existing.PhoneNumber = dto.PhoneNumber;
+
+            await _customerService.UpdateCustomerAsync(existing);
             return NoContent();
         }
 

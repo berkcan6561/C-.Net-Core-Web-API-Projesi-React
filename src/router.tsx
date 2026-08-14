@@ -14,12 +14,14 @@ import { ResetPassword } from './pages/ResetPassword';
 
 const requireAdmin = () => {
   const userStr = sessionStorage.getItem('user');
-  if (userStr) {
-    const user = JSON.parse(userStr);
-    if (user.role !== 'Admin') {
-      throw redirect({ to: '/' }); //admin olmayan kullanıcıları ana sayfaya yönlendir
-    }
-  };
+  if (!userStr) {
+    throw redirect({ to: '/login' });
+  }
+  const user = JSON.parse(userStr);
+  if (user.role !== 'Admin') {
+    throw redirect({ to: '/' });
+  }
+};
 
 const rootRoute = createRootRoute({});
 
@@ -88,6 +90,7 @@ const reservationsRoute = createRoute({
   getParentRoute: () => authRoute,
   path:'/reservations',
   component: Reservations,
+  beforeLoad: requireAdmin, // Sadece admin kullanıcılar için erişim izni
 });
 
 const profileRoute = createRoute({

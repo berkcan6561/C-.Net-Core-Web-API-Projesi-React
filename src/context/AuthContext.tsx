@@ -26,8 +26,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const IDLE_TIMEOUT = 15* 60 * 1000; //boşta kalma süresi 15 dk
 
     useEffect(() => {
-        const savedToken = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
+        const savedToken = sessionStorage.getItem('token');
+        const savedUser = sessionStorage.getItem('user');
         
         if(savedToken && savedUser){
             setToken(savedToken);
@@ -44,7 +44,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             //süre dolduğunda çıkış yap
             timeoutRef.current = setTimeout(() =>{
-                console.log("Uzun süre işlem yapılmadığı için otomatik çıkış yapıldı.");
                 logout();
                 
             },IDLE_TIMEOUT);
@@ -69,22 +68,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = (newToken: string, newUser: User) => {
         setToken(newToken);
         setUser(newUser);
-        localStorage.setItem('token', newToken);
-        localStorage.setItem('user', JSON.stringify(newUser));
+        sessionStorage.setItem('token', newToken);
+        sessionStorage.setItem('user', JSON.stringify(newUser));
     };
 
     const updateUser = (updates: Partial<User>) => {
         if (!user) return;
         const updatedUser = { ...user, ...updates };
         setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        sessionStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
     const logout = () => {
         setToken(null);
         setUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
 
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);

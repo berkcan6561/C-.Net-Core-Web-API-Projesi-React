@@ -23,5 +23,7 @@ namespace otel_api.Models
 
         public Customer? Customer { get; set; }
         public string? AvatarUrl { get; set;}
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiry { get; set; }
     }
 }

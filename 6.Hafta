@@ -1,0 +1,15 @@
+1. Güvenlik ve Kimlik Doğrulama Mimarisinin Kurulması
+Progressive Delay Algoritması: Giriş (Login) endpoint'ine yönelik kaba kuvvet (Brute-force) saldırılarını engellemek ve sunucu yükünü hafifletmek amacıyla, hatalı şifre denemelerinde yanıt süresini kademeli olarak artıran (Progressive Delay) asenkron güvenlik algoritması backend tarafında kurgulandı.
+Google reCAPTCHA Entegrasyonu: Otomatikleştirilmiş bot yazılımlarını tamamen durdurmak için sisteme Google reCAPTCHA v2 (Robot Doğrulama) dahil edildi. İlgili kontrol mekanizması şifre doğrulama adımından önceye alınarak, güvenlik duvarı optimize edildi.
+
+2. Oturum Güvenliği ve Modernizasyon
+Refresh Token ve HttpOnly Cookie Mimarisi: JWT (JSON Web Token) altyapısı Refresh Token mekanizması ile genişletildi. Güvenliği en üst seviyeye çıkarmak için token'lar localStorage yerine dışarıdan okunamayan HttpOnly Cookie yapısıyla şifrelenerek saklandı. Access Token'ın süresi dolduğunda Axios Interceptor ile arka planda otomatik yenileme (refresh) sağlandı.
+Güvenlik Katmanlarının Temizliği: Eski nesil ve sistemde çakışmaya yol açan 1 saatlik hesap kilitlenme mekanizması sistemden tamamen kaldırılarak, modern IP Ban (Rate Limiting) sistemine geçildi.
+
+3. Çoklu Dil Desteği (i18n) İyileştirmeleri ve Hata Çözümleri
+Eksik Çevirilerin Tamamlanması: Geçtiğimiz haftalarda kurulan i18n çoklu dil sisteminde eksik kalan hataları, statik metinler ve özellikle PDF Fatura çıktısında yer alan hardcoded Türkçe metinler (İngilizce ve Almanca) dil dosyalarına dahil edilerek dinamik hale getirildi.
+Gelişmiş Hata Yakalama (Error Handling): Alert ve window.confirm gibi eski nesil tarayıcı diyalogları sistemden tamamen arındırılarak, yerine modern Toast bildirimleri ve Custom Modal tasarımları entegre edildi.
+
+4. Kod Temizliği ve Veri Bütünlüğü Zafiyetlerinin Giderilmesi
+Ortam Değişkenleri (.env) Entegrasyonu: Kod içine gömülü (hardcoded) olarak bırakılan tüm "localhost" URL API adresleri projeden temizlendi. Bütün servisler dinamik .env (Environment Variables) ortam değişkenlerine bağlandı.
+İşlem Bütünlüğü (Transaction Lock): Müşteri (Customer) silinme işlemleri sırasında veritabanında oluşabilecek tutarsızlıkları önlemek için işlem "BeginTransactionAsync" bloğu ile sarmalandı. Ayrıca oda silinme durumlarında aktif rezervasyonların havada kalmasını önleyecek çapraz denetim (Validation) mekanizmaları eklendi.

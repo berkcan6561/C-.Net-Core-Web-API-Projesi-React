@@ -3,7 +3,6 @@ using otel_api.DTOs;
 using otel_api.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.VisualBasic;
 
 namespace otel_api.Controllers
 {
@@ -27,11 +26,23 @@ namespace otel_api.Controllers
             if (!result.Success) return BadRequest(result.Message);
             return Ok(result.Data);
         }
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (string.IsNullOrEmpty(refreshToken))
+            return Unauthorized(new { message = "Refresh token bulunamadı."});
+            var result = await _authService.RefreshToken(refreshToken);
+            if (!result.Success) return Unauthorized(new { message = result.Message });
+            SetRefreshTokenCookie(result.NewRefreshToken);
+            return Ok(result.Data);
+        }
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             var result = await _authService.Login(request);
             if (!result.Success) return BadRequest(result.Message);
+            SetRefreshTokenCookie(result.RefreshToken);
             return Ok(result.Data);
         }
         [EnableRateLimiting("StrictSecurityLimit")]
@@ -60,6 +71,14 @@ namespace otel_api.Controllers
             var result = await _authService.ForgotPassword(request.Email);
             // Güvenlik için e-posta olsa da olmasa da hep başarılı döneriz ki kötü niyetli kişiler hangi e-postaların kayıtlı olduğunu bulamasın
             return Ok(new { message = result.Message });
+        }
+
+        [HttpGet("csrf-token")]
+        public IActionResult GetCsrfToken([FromServices]
+Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery)
+        {
+            var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+            return Ok(new { csrftoken = tokens.RequestToken });
         }
 
         [EnableRateLimiting("StrictSecurityLimit")]
@@ -104,8 +123,10 @@ namespace otel_api.Controllers
             if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
 
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var allowedMimeTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
             var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!allowedExtensions.Contains(ext)) return BadRequest("Sadece resim yükleyebilirsiniz.");
+            if (!allowedMimeTypes.Contains(file.ContentType.ToLower())) return BadRequest("Geçersiz dosya türü.");
 
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "avatars");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
@@ -120,11 +141,33 @@ namespace otel_api.Controllers
 
             var user = await _db.Users.FindAsync(userId);
             if(user != null) {
+                //Eski dosya varsa diskten sil
+                if (!string.IsNullOrEmpty(user.AvatarUrl))
+                {
+                    var oldFileName = Path.GetFileName(user.AvatarUrl);
+                    var oldFilePath = Path.Combine(uploadsFolder, oldFileName);
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                }
                 user.AvatarUrl = "/avatars/" + uniqueFileName;
                 await _db.SaveChangesAsync();
             }
 
             return Ok(new { avatarUrl = user?.AvatarUrl });
+        }
+        private void SetRefreshTokenCookie(string? token)
+        {
+            if (string.IsNullOrEmpty(token)) return;
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.UtcNow.AddDays(7),
+                SameSite = SameSiteMode.Strict,
+                Secure = true
+            };
+            Response.Cookies.Append("refreshToken", token, cookieOptions);
         }
     }
 }

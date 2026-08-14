@@ -1,19 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { getRooms } from './api/roomService';
+import { useTranslation } from 'react-i18next';
+
 
 function App() {
+  const { t } = useTranslation();
+
   // TanStack Query ile veriyi çekiyoruz
   const { data, isLoading, error } = useQuery({
     queryKey: ['rooms'],
     queryFn: getRooms,
   });
 
-  if (isLoading) return <div className="text-white p-10">Odalat yükleniyor kanka...</div>;
-  if (error) return <div className="text-red-500 p-10">Hata: Backend'i çalıştırdın mı?</div>;
+  if (isLoading) return <div className="text-white p-10">{t('pages.rooms.loadingRooms')}</div>;
+  if (error) return <div className="text-red-500 p-10">{t('pages.rooms.loadError')}</div>;
 
   return (
     <div className="min-h-screen bg-slate-900 p-10">
-      <h1 className="text-3xl font-bold text-cyan-400 mb-6">Otel Odaları</h1>
+      <h1 className="text-3xl font-bold text-cyan-400 mb-6">{t('pages.rooms.pageTitle')}</h1>
       
       <div className="grid gap-4">
         {data?.map((room) => (
